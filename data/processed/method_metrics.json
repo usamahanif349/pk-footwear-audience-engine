@@ -1,0 +1,20 @@
+{
+  "knn_cv_accuracy": 0.808,
+  "labelled_by_word_list": 3439,
+  "labelled_by_neighbours": 618,
+  "k": 18,
+  "silhouette_by_k": {
+    "8": 0.134,
+    "10": 0.1266,
+    "12": 0.1374,
+    "14": 0.1397,
+    "16": 0.1353,
+    "18": 0.1409,
+    "20": 0.132
+  },
+  "nmi_embeddings_vs_needs": 0.434,
+  "nmi_tfidf_vs_needs": 0.341,
+  "comments": 6724,
+  "customer_comments": 5820,
+  "videos": 690
+}

@@ -1,0 +1,21 @@
+{
+  "customer_comments": 5820,
+  "commenters": 4248,
+  "videos": 690,
+  "buying_questions": 897,
+  "buying_q_brand_posts": 65,
+  "buying_q_brand_posts_answered": 1,
+  "buying_q_creator_posts": 832,
+  "buying_q_creator_posts_answered": 261,
+  "price_q_share_price_shown": 0.0323,
+  "price_q_share_price_hidden": 0.0517,
+  "servis_buzz_share": 0.3205,
+  "brand_post_median_views": 66402.0,
+  "creator_post_median_views": 5081.0,
+  "brand_post_likes_per_1k": 3.431222555063143,
+  "creator_post_likes_per_1k": 11.199045548680878,
+  "brand_post_comments_per_1k": 0.0216450216450216,
+  "creator_post_comments_per_1k": 0.7585814526834819,
+  "brand_post_high_intent": 0.10117302052785923,
+  "creator_post_high_intent": 0.1788633709614636
+}
