@@ -44,6 +44,7 @@ FORMAT_COLORS = {"Short": "#EB6834", "Video": "#2A78D6"}
 POST_COLORS = {"Brand's own post": NAVY, "Creator / influencer post": "#1BAF7A"}
 CHART_FONT = "Segoe UI, -apple-system, Helvetica Neue, Arial, sans-serif"
 BRAND_POST, CREATOR_POST = "Brand's own post", "Creator / influencer post"
+SHORT_POST = {BRAND_POST: "Brand", CREATOR_POST: "Creator"}
 BUY_NEEDS = ["Price inquiry", "Availability / location", "Delivery / how to order", "Contact / link request", "Size / fit"]
 
 st.set_page_config(page_title="Footwear audience engine", page_icon="📣", layout="wide")
@@ -244,7 +245,7 @@ def page_overview():
         ("Customer comments", f"{len(cust):,}", f"{cust.author.nunique():,} people", "neutral",
          f"on {vids.video_id.nunique():,} videos, {cust.brand.nunique()} brand(s)"),
         ("Buying questions", f"{len(hi):,}", pct(len(hi) / max(len(cust), 1)), "neutral",
-         "price, where to buy, how to order, size, contact"),
+         "price, where to buy, how to order, size, contact (incl. replies in threads)"),
         ("Answered on brand posts", f"{int(own.answered.sum())} of {len(own)}",
          "missed sales" if len(own) and own.answered.mean() < 0.5 else "", "bad",
          "buying questions the brand replied to on its own videos"),
@@ -326,20 +327,24 @@ def page_content():
             g = vids.groupby(["content_type", "format"]).agg(videos=("video_id", "count"), views=("views", "median"),
                                                               cpk=("comments_per_1k", "median")).reset_index()
             g = g[g.videos >= 3]
+            palette = ["#2A78D6", "#EB6834", "#1BAF7A", "#EDA100", "#E87BA4", "#9E77ED", "#1E3A5F", "#98A2B3"]
+            colors = {c: palette[i % len(palette)] for i, c in enumerate(sorted(g.content_type.unique()))}
             fig = go.Figure()
-            for fmt, d in g.groupby("format"):
+            for (ctype, fmt), d in g.groupby(["content_type", "format"]):
                 fig.add_trace(go.Scatter(
-                    x=d.views, y=d.cpk, mode="markers+text", name=fmt, text=d.content_type,
-                    textposition="top center", textfont=dict(size=11, color=INK_2),
-                    marker=dict(size=np.sqrt(d.videos) * 5 + 6, color=FORMAT_COLORS.get(fmt, GREY), opacity=.75,
-                                line=dict(color="#FFFFFF", width=1)),
+                    x=d.views, y=d.cpk, mode="markers", name=f"{ctype} ({fmt})", legendgroup=ctype,
+                    marker=dict(size=np.sqrt(d.videos) * 5 + 8, color=colors[ctype], opacity=.8,
+                                symbol="circle" if fmt == "Video" else "diamond", line=dict(color="#FFFFFF", width=1)),
                     customdata=d.videos,
-                    hovertemplate="%{text} (" + fmt + ")<br>median views %{x:,.0f}<br>%{y:.2f} comments per 1,000 views"
+                    hovertemplate=f"{ctype} ({fmt})<br>median views %{{x:,.0f}}<br>%{{y:.2f}} comments per 1,000 views"
                                   "<br>%{customdata} videos<extra></extra>"))
             fig.update_layout(xaxis=dict(type="log", title="Median views (log scale)"),
-                              yaxis=dict(type="log", title="Comments per 1,000 views (log)"))
+                              yaxis=dict(type="log", title="Comments per 1,000 views (log)"),
+                              legend=dict(orientation="v", x=1.02, y=1, xanchor="left", yanchor="top", font=dict(size=11)),
+                              margin=dict(r=10))
             show(fig, 440)
-            st.caption("Top right is the sweet spot: seen by many and talked about. Only groups with 3+ videos are shown.")
+            st.caption("Circles are long videos, diamonds are Shorts. Top right is the sweet spot: seen by many and "
+                       "talked about. Only groups with 3+ videos are shown; hover for details.")
     with c2:
         with card("brand_vs_creator"):
             card_head("Brand posts vs creator posts", "Medians per video")
@@ -349,9 +354,9 @@ def page_content():
             rows = ""
             for label, col, fmt in [("Videos", "videos", "{:,.0f}"), ("Median views", "views", "{:,.0f}"),
                                     ("Likes per 1,000 views", "lk", "{:.1f}"), ("Comments per 1,000 views", "cm", "{:.2f}")]:
-                vals = " · ".join(f"{p.split(' ')[0]}: {fmt.format(pt.loc[p, col])}" for p in pt.index)
+                vals = " · ".join(f"{SHORT_POST[p]}: {fmt.format(pt.loc[p, col])}" for p in pt.index)
                 rows += f'<div class="fact"><span>{label}</span><b>{vals}</b></div>'
-            vals = " · ".join(f"{p.split(' ')[0]}: {hi_share.get(p, 0):.0%}" for p in pt.index)
+            vals = " · ".join(f"{SHORT_POST[p]}: {hi_share.get(p, 0):.0%}" for p in pt.index)
             rows += f'<div class="fact"><span>Buying questions</span><b>{vals}</b></div>'
             html(rows)
             st.caption("Brand posts reach more people (likely paid promotion), but creator posts get far more "
@@ -484,9 +489,10 @@ def page_segments():
             names = [s for s in g.index if s != "Off-topic / unclear"]
             pick = st.selectbox("Group", names, key="seg_pick")
             r = seg.loc[pick]
+            top_b = ", ".join(cust[cust.segment == pick].brand.value_counts().head(3).index)
             rows = (f'<div class="fact"><span>People</span><b>{int(g.loc[pick, "people"]):,}</b></div>'
                     f'<div class="fact"><span>Comments</span><b>{int(g.loc[pick, "comments"]):,}</b></div>'
-                    f'<div class="fact"><span>Most common brands</span><b>{esc(r.top_brands)}</b></div>'
+                    f'<div class="fact"><span>Most common brands</span><b>{esc(top_b)}</b></div>'
                     f'<div class="fact"><span>Project 2 ad angle</span><b>{esc(r.project2_angle)}</b></div>')
             html(rows)
             html(f'<div class="why" style="margin-top:10px"><b>What to do:</b> {esc(r.action)}</div>')
@@ -509,7 +515,10 @@ MEASURES = ["views per day", "likes per 1,000 views", "comments per 1,000 views"
 def most_common_reason(u):
     counts = {m: int(u.unusual_because.str.contains(m, regex=False).sum()) for m in MEASURES}
     best = max(counts, key=counts.get)
-    return best.capitalize() if counts[best] else "-"
+    short = {"views per day": "Views per day", "likes per 1,000 views": "Likes / 1k views",
+             "comments per 1,000 views": "Comments / 1k views", "share of buying questions": "Buying questions",
+             "share of complaints": "Complaints"}
+    return short[best] if counts[best] else "-"
 
 
 def page_unusual():
@@ -548,10 +557,11 @@ def page_unusual():
             html("".join(f'<div class="fact"><span>{esc(r.audience_type)}</span><b>{int(r.posts)} posts · '
                          f'{r.high_intent_share:.0%} buying, {r.praise_share:.0%} praise</b></div>'
                          for r in pt.sort_values("high_intent_share", ascending=False).itertuples()))
-            x = vids[vids.audience_type != "Too few comments to tell"]
+            x = vids[vids.audience_type.str.startswith("Shopper")]
             if len(x):
-                tab = pd.crosstab(x.content_type, x.audience_type)
-                st.dataframe(tab, use_container_width=True)
+                top = x.content_type.value_counts()
+                html(f'<div class="why" style="margin-top:10px">Shopper posts are mostly <b>{top.index[0].lower()}</b> '
+                     f'({top.iloc[0]} of {len(x)}){" and <b>" + top.index[1].lower() + "</b>" if len(top) > 1 else ""}.</div>')
             st.caption("Only videos with 10+ customer comments are typed. Shopper posts are where buying questions "
                        "pile up, so they need replies fastest.")
 
@@ -596,7 +606,7 @@ def page_gaps():
             card_head("Unanswered questions", "Newest first; download the full list for the support team")
             un = q[~q.answered].sort_values("published", ascending=False)
             html("".join(f'<div class="quote">{esc(r.text)[:200]}<br><span>{r.brand} · {r.need_label} · '
-                         f'{r.post_type.split(" ")[0]} post · {r.published}</span></div>' for r in un.head(8).itertuples()))
+                         f'{SHORT_POST.get(r.post_type, "")} post · {r.published}</span></div>' for r in un.head(8).itertuples()))
             st.download_button("Download unanswered questions (CSV)",
                                un[["brand", "post_type", "channel", "need_label", "text", "published", "url"]].to_csv(index=False),
                                "unanswered_buying_questions.csv", "text/csv")
