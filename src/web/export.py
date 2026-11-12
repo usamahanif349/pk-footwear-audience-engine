@@ -245,7 +245,10 @@ def main():
     cmap = pd.read_csv(PROC / "cluster_map.csv").merge(com[["comment_id", "text"]], on="comment_id")
     names = pd.read_csv(PROC / "clusters.csv").set_index("cluster").main_need_label
     pts = cmap.sample(1500, random_state=0)
-    bench = pd.read_csv(PROC / "benchmark.csv").to_dict("records") if (PROC / "benchmark.csv").exists() else None
+    bench = None
+    if (PROC / "benchmark.csv").exists():
+        b = pd.read_csv(PROC / "benchmark.csv")
+        bench = b.astype(object).where(b.notna(), None).to_dict("records")   # NaN is not valid JSON
 
     data = dict(
         date=DATA_DATE, brands=brands, spaces=spaces, inbox=inbox_items,
@@ -260,7 +263,7 @@ def main():
                    streamlit="https://pk-footwear-audience-engine.streamlit.app/"),
     )
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
+    OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":"), allow_nan=False))
     print("wrote", OUT, f"{OUT.stat().st_size / 1e6:.2f} MB", "| inbox items:", len(inbox_items))
 
 

@@ -369,7 +369,9 @@
     render();
   }
 
-  fetch("data.json").then(r => r.json()).then(init).catch(() => {
-    $("#view").innerHTML = '<div class="panel"><h2>Couldn\'t load the data</h2><p class="note">Open this page through a web server (GitHub Pages), not as a local file.</p></div>';
+  fetch("data.json", { cache: "no-cache" }).then(r => r.json()).then(data => {
+    try { init(data); } catch (e) { console.error(e); $("#view").innerHTML = `<div class="panel"><h2>Something went wrong</h2><p class="note">${esc(e.message)}</p></div>`; }
+  }).catch(() => {
+    $("#view").innerHTML = '<div class="panel"><h2>Couldn\'t load the data</h2><p class="note">Refresh the page. If you opened the file directly, open it through GitHub Pages instead.</p></div>';
   });
 })();
