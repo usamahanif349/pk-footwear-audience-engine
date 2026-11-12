@@ -1,148 +1,198 @@
 """
-Streamlit dashboard: Pakistan Social Audience & Campaign Intelligence Engine for
-Pakistani footwear brands (Project 3). All comments and video numbers are REAL public
-YouTube data, collected with the official YouTube Data API.
+Joota Pulse: audience intelligence for Pakistani footwear brands (Big Data Project 3).
+
+A marketing web app built on REAL public YouTube comments and video stats, collected
+with the official YouTube Data API. It finds buyers waiting for a reply, the customer
+groups behind the comments, the content that works and ready-to-run campaigns.
 
 Run locally (Command Prompt):  streamlit run src\\dashboard\\app.py
 """
+import datetime as dt
 import json
 import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
-import plotly.io as pio
 import streamlit as st
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src" / "engine"))
-from lexicon import NEED_LABEL  # noqa: E402
 from replies import REPLIES  # noqa: E402
 
-PROC = ROOT / "data" / "processed"
+PROC, ASSETS = ROOT / "data" / "processed", ROOT / "assets"
 REPO_URL = "https://github.com/usamahanif349/pk-footwear-audience-engine"
 P1_URL = "https://github.com/usamahanif349/pk-footwear-sentiment-analysis"
 P2_URL = "https://github.com/usamahanif349/pk-footwear-budget-optimizer"
 P2_APP = "https://pk-footwear-budget-optimizer.streamlit.app/"
+DATA_DATE = "12 Nov 2026"
 CORE = ["Borjan", "Servis", "Ndure"]
-
-# ---------------- COLOURS ----------------
-INK, INK_2, MUTED, LINE = "#101828", "#475467", "#667085", "#E4E7EC"
-NAVY, GREY, GREY_LIGHT = "#1E3A5F", "#98A2B3", "#D0D5DD"
-GOOD, BAD, WARN = "#067647", "#B42318", "#B54708"
-# buying needs in warm colours, praise and buzz in cool ones, the rest grey
-NEED_COLORS = {
-    "Price inquiry": "#EB6834", "Availability / location": "#EDA100", "Delivery / how to order": "#C2410C",
-    "Contact / link request": "#D97706", "Size / fit": "#B45309", "Complaint / problem": "#B42318",
-    "Discount / sale": "#E87BA4", "Quality / comfort": "#9E77ED", "Product praise / wants it": "#1BAF7A",
-    "Praise for the video": "#2A78D6", "General praise / blessing": "#7CB4F0",
-    "Ad nostalgia / celebrity buzz": "#1E3A5F", "Other / off-topic": "#D0D5DD",
-}
-FORMAT_COLORS = {"Short": "#EB6834", "Video": "#2A78D6"}
-POST_COLORS = {"Brand's own post": NAVY, "Creator / influencer post": "#1BAF7A"}
-CHART_FONT = "Segoe UI, -apple-system, Helvetica Neue, Arial, sans-serif"
 BRAND_POST, CREATOR_POST = "Brand's own post", "Creator / influencer post"
-SHORT_POST = {BRAND_POST: "Brand", CREATOR_POST: "Creator"}
-BUY_NEEDS = ["Price inquiry", "Availability / location", "Delivery / how to order", "Contact / link request", "Size / fit"]
 
-st.set_page_config(page_title="Footwear audience engine", page_icon="📣", layout="wide")
+VIOLET, VIOLET_SOFT, ORANGE, GREEN, RED = "#5B4BDB", "#EEEBFF", "#F26B3A", "#12A150", "#D92D20"
+INK, MUTED, LINE = "#14142B", "#6E6E85", "#ECECF3"
+FONT = "Plus Jakarta Sans, Segoe UI, Helvetica Neue, Arial, sans-serif"
+
+ASK = {  # need -> short inbox label
+    "price": "Price", "availability": "Where to buy", "delivery_order": "Order & delivery",
+    "contact": "Contact", "size_fit": "Size", "complaint": "Complaint"}
+SEGMENT_CARD = {  # segment -> (emoji, badge, badge tone, what to do)
+    "Where-can-I-buy askers": ("📍", "Ready to buy", "hot", "Pin a store locator and the order link."),
+    "Price checkers": ("💰", "Ready to buy", "hot", "Show prices on screen or in a pinned comment."),
+    "Deal hunters": ("🏷️", "Ready to buy", "hot", "Post sale start and end dates."),
+    "Order & delivery askers": ("🚚", "Ready to buy", "hot", "Explain cash on delivery and delivery days."),
+    "Contact seekers": ("📞", "Ready to buy", "hot", "Put WhatsApp and website in every description."),
+    "Size & fit askers": ("📏", "Ready to buy", "hot", "Share a size guide and how each article fits."),
+    "Unhappy customers": ("⚠️", "Needs care", "bad", "Reply within a day and fix it privately."),
+    "Quality-conscious shoppers": ("🔍", "Considering", "warm", "Show soles and stitching up close."),
+    "Product fans": ("💜", "Fans", "cool", "Retarget them with the same articles."),
+    "Ad & meme crowd": ("📺", "Buzz", "cool", "Reuse the buzz in throwback content."),
+    "Supporters (general praise)": ("👏", "Fans", "cool", "Thank them and point to the shop."),
+}
+
+SEG_NEED = {"Where-can-I-buy askers": {"availability"}, "Price checkers": {"price"}, "Deal hunters": {"discount_sale"},
+            "Order & delivery askers": {"delivery_order"}, "Contact seekers": {"contact"}, "Size & fit askers": {"size_fit"},
+            "Unhappy customers": {"complaint"}, "Quality-conscious shoppers": {"quality_comfort"},
+            "Product fans": {"praise_product"}, "Ad & meme crowd": {"nostalgia_ad"},
+            "Supporters (general praise)": {"general_praise", "praise_content"}}
+SHORT_NEED = {"Availability / location": "Where to buy", "Price inquiry": "Price", "Discount / sale": "Sales & discounts",
+              "Delivery / how to order": "Ordering & delivery", "Contact / link request": "Contact details",
+              "Size / fit": "Size & fit", "Quality / comfort": "Quality & comfort", "Complaint / problem": "Complaints",
+              "Ad nostalgia / celebrity buzz": "Ad nostalgia", "Product praise / wants it": "Product love"}
+
+st.set_page_config(page_title="Joota Pulse", page_icon=str(ASSETS / "logo_icon.png"), layout="wide")
 
 CSS = """
 <style>
-.stApp {background: #F6F7F9;}
-.block-container {padding-top: 3.2rem; padding-bottom: 3rem; max-width: 1280px;}
-[data-testid="stSidebar"] {background: #FFFFFF; border-right: 1px solid #E4E7EC;}
-.page-h {display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
-  flex-wrap: wrap; margin-bottom: 1.1rem;}
-.page-h .crumb {color: #667085; font-size: .86rem; margin: 0 0 4px;}
-.page-h h1 {font-size: 1.85rem; font-weight: 700; color: #101828; margin: 0; padding: 0;
-  letter-spacing: -0.01em; line-height: 1.2;}
-.page-h .sub {color: #475467; margin: 6px 0 0; font-size: 1rem; max-width: 72ch;}
-.tag {display: inline-block; font-size: .8rem; font-weight: 600; padding: 4px 10px; border-radius: 999px;
-  background: #EEF2F7; color: #1E3A5F; border: 1px solid #D5DEEA; white-space: nowrap;}
-.tag.real {background: #ECFDF3; color: #067647; border-color: #ABEFC6;}
-[class*="st-key-card_"] {background: #FFFFFF; border: 1px solid #E4E7EC; border-radius: 14px;
-  padding: 18px 20px 14px; box-shadow: 0 1px 2px rgba(16, 24, 40, .05);}
-.card-h h4 {font-size: 1.05rem; font-weight: 600; color: #101828; margin: 0; padding: 0;}
-.card-h p {color: #667085; font-size: .88rem; margin: 3px 0 10px;}
-.kpis {display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px;}
-.kpi {background: #FFFFFF; border: 1px solid #E4E7EC; border-radius: 14px; padding: 16px 18px;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, .05);}
-.kpi .lbl {color: #475467; font-size: .88rem; font-weight: 500;}
-.kpi .row {display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap;}
-.kpi .val {color: #101828; font-size: 1.6rem; font-weight: 700; line-height: 1.15; white-space: nowrap;}
-.kpi .note {color: #667085; font-size: .82rem; margin-top: 6px;}
-.chip {font-size: .78rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap;}
-.chip.good {background: #ECFDF3; color: #067647;}
-.chip.bad {background: #FEF3F2; color: #B42318;}
-.chip.neutral {background: #F2F4F7; color: #344054;}
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+html, body, [class*="css"], .stApp, .stMarkdown, button, input, select, textarea {
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif !important;}
+.stApp {background: #F7F7FB;}
+.block-container {padding-top: 2.6rem; padding-bottom: 3rem; max-width: 1240px;}
+header[data-testid="stHeader"] {background: transparent;}
+[data-testid="stSidebar"] {background: #FFFFFF; border-right: 1px solid #ECECF3;}
+[data-testid="stSidebarNav"] a span {font-weight: 500;}
+h1, h2, h3, h4 {font-family: 'Plus Jakarta Sans', sans-serif !important; letter-spacing: -0.02em;}
+
+.top {display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px;}
+.top h1 {font-size: 1.75rem; font-weight: 800; color: #14142B; margin: 0; padding: 0; line-height: 1.2;}
+.top p {color: #6E6E85; margin: 6px 0 0; font-size: .98rem;}
+.ws {display: inline-flex; align-items: center; gap: 8px; background: #FFFFFF; border: 1px solid #ECECF3;
+  border-radius: 999px; padding: 6px 14px 6px 8px; font-size: .86rem; color: #14142B; font-weight: 600;}
+.ws i {width: 22px; height: 22px; border-radius: 50%; background: #5B4BDB; color: #fff; font-style: normal;
+  display: inline-grid; place-items: center; font-size: .7rem;}
+
+[class*="st-key-box_"] {background: #FFFFFF; border: 1px solid #ECECF3; border-radius: 18px; padding: 20px 22px 16px;}
+.bh {display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 10px;}
+.bh h3 {font-size: 1.05rem; font-weight: 700; color: #14142B; margin: 0; padding: 0;}
+.bh span {color: #6E6E85; font-size: .84rem;}
+
+.kpis {display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px;}
+.kpi {background: #FFFFFF; border: 1px solid #ECECF3; border-radius: 18px; padding: 18px 20px;}
+.kpi.money {background: linear-gradient(135deg, #5B4BDB 0%, #7B5CF0 100%); border: 0;}
+.kpi .l {color: #6E6E85; font-size: .84rem; font-weight: 600;}
+.kpi .v {color: #14142B; font-size: 1.9rem; font-weight: 800; line-height: 1.15; margin-top: 8px; letter-spacing: -0.03em;}
+.kpi .n {color: #6E6E85; font-size: .82rem; margin-top: 6px;}
+.kpi.money .l, .kpi.money .n {color: #DCD6FF;}
+.kpi.money .v {color: #FFFFFF;}
+.up {color: #12A150; font-weight: 700;} .down {color: #D92D20; font-weight: 700;}
+
+.todo {display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid #F1F1F6;}
+.todo:last-child {border-bottom: 0;}
+.todo .num {flex: none; width: 30px; height: 30px; border-radius: 10px; background: #EEEBFF; color: #5B4BDB;
+  font-weight: 800; display: grid; place-items: center;}
+.todo .t {font-weight: 700; color: #14142B;}
+.todo .w {color: #6E6E85; font-size: .88rem; margin-top: 2px;}
+
+.bar {margin: 9px 0;}
+.bar .row {display: flex; justify-content: space-between; font-size: .88rem; color: #14142B; font-weight: 600;}
+.bar .row span {color: #6E6E85; font-weight: 500;}
+.bar .track {height: 8px; border-radius: 99px; background: #F1F1F6; margin-top: 5px; overflow: hidden;}
+.bar .fill {height: 100%; border-radius: 99px; background: #5B4BDB;}
+.bar .fill.hot {background: #F26B3A;}
+
+.badge {display: inline-block; font-size: .74rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap;}
+.badge.hot {background: #FFF1EA; color: #C4410C;}
+.badge.bad {background: #FEECEB; color: #B42318;}
+.badge.warm {background: #FFF8E1; color: #9A6700;}
+.badge.cool {background: #EEEBFF; color: #4A3BC4;}
+.badge.ok {background: #E7F7EE; color: #0B7A3C;}
+.badge.grey {background: #F1F1F6; color: #4A4A63;}
+
+.tiles {display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px;}
+.tile {background: #FFFFFF; border: 1px solid #ECECF3; border-radius: 18px; padding: 18px 20px;}
+.tile .h {display: flex; justify-content: space-between; align-items: center;}
+.tile .e {font-size: 1.5rem;}
+.tile .name {font-weight: 700; color: #14142B; margin-top: 10px;}
+.tile .big {font-size: 1.7rem; font-weight: 800; color: #14142B; letter-spacing: -0.03em; margin-top: 2px;}
+.tile .big small {font-size: .85rem; color: #6E6E85; font-weight: 500; letter-spacing: 0;}
+.tile .q {color: #4A4A63; font-size: .88rem; font-style: italic; margin-top: 10px; min-height: 2.6em;}
+.tile .do {color: #14142B; font-size: .88rem; margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1F1F6;}
+.tile .do b {color: #5B4BDB;}
+
+.msg {display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #F1F1F6;}
+.msg:last-child {border-bottom: 0;}
+.av {flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  font-weight: 700; color: #fff; font-size: .85rem;}
+.msg .meta {font-size: .8rem; color: #6E6E85;}
+.msg .txt {color: #14142B; font-size: .95rem; margin-top: 3px;}
+
+.lead {display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid #F1F1F6;}
+.lead:last-child {border-bottom: 0;}
+.lead .rank {width: 22px; color: #6E6E85; font-weight: 700;}
+.lead .who {flex: 1;}
+.lead .who a {font-weight: 700; color: #14142B; text-decoration: none;}
+.lead .who a:hover {text-decoration: underline;}
+.lead .who div {font-size: .8rem; color: #6E6E85;}
+.lead .n {font-weight: 800; color: #14142B; text-align: right;}
+.lead .n span {display: block; font-size: .75rem; color: #6E6E85; font-weight: 500;}
+
+.pc {border: 1px solid #ECECF3; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; background: #FFFFFF;}
+.pc .t {font-weight: 700; color: #14142B;}
+.pc .s {color: #6E6E85; font-size: .84rem; margin-top: 2px;}
+.pc .m {display: flex; gap: 18px; margin-top: 10px; flex-wrap: wrap;}
+.pc .m div {font-size: .8rem; color: #6E6E85;}
+.pc .m b {display: block; font-size: 1.15rem; color: #14142B;}
+.pc a {color: #14142B; text-decoration: none; font-weight: 700;}
+.pc a:hover {text-decoration: underline;}
+
+.stat {background: #FFFFFF; border: 1px solid #ECECF3; border-radius: 18px; padding: 16px 18px;}
+.stat b {font-size: 1.6rem; font-weight: 800; color: #5B4BDB; letter-spacing: -0.03em;}
+.stat div {color: #4A4A63; font-size: .88rem; margin-top: 4px;}
+
+.camp {background: #FFFFFF; border: 1px solid #ECECF3; border-radius: 18px; padding: 18px 20px; margin-bottom: 6px;}
+.camp .tags {display: flex; gap: 6px; flex-wrap: wrap;}
+.camp .t {font-weight: 800; color: #14142B; font-size: 1.05rem; margin-top: 10px;}
+.camp .w {color: #4A4A63; font-size: .9rem; margin-top: 6px;}
+.camp .d {color: #6E6E85; font-size: .84rem; margin-top: 8px;}
+
+table.cmp {width: 100%; border-collapse: collapse; font-size: .9rem;}
+table.cmp th {text-align: left; color: #6E6E85; font-weight: 600; font-size: .8rem; padding: 8px 10px; border-bottom: 1px solid #ECECF3;}
+table.cmp td {padding: 10px; border-bottom: 1px solid #F1F1F6; color: #14142B;}
+table.cmp tr.me td {background: #F6F4FF; font-weight: 700;}
+table.cmp td.num {font-variant-numeric: tabular-nums;}
+
+.reply {background: #F6F4FF; border: 1px solid #E2DDFF; border-radius: 14px; padding: 14px 16px; color: #14142B;}
+.quote {background: #FAFAFC; border: 1px solid #ECECF3; border-radius: 12px; padding: 10px 12px; margin: 6px 0;
+  color: #14142B; font-size: .92rem;}
+.quote span {display: block; color: #6E6E85; font-size: .78rem; margin-top: 3px;}
+.note {color: #6E6E85; font-size: .82rem;}
+[data-testid="stCode"] pre, [data-testid="stCode"] code {font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-size: .98rem !important; color: #14142B !important; white-space: pre-wrap !important; line-height: 1.55 !important;}
+[data-testid="stCode"] pre {background: #F6F4FF !important; border: 1px solid #E2DDFF; border-radius: 14px;}
+div[data-testid="stDownloadButton"] button, div[data-testid="stLinkButton"] a {border-radius: 12px; font-weight: 600;}
 @media (max-width: 900px) {
   .kpis {grid-template-columns: repeat(2, minmax(0, 1fr));}
-  .kpi .val {font-size: 1.25rem; white-space: normal;}
-  .page-h h1 {font-size: 1.5rem;}
+  .tiles {grid-template-columns: 1fr;}
+  .kpi .v {font-size: 1.4rem;}
 }
-.why {color: #344054; line-height: 1.6; font-size: .97rem;}
-.why b {color: #101828;}
-.fact {display: flex; justify-content: space-between; gap: 12px; padding: 8px 0;
-  border-bottom: 1px solid #F2F4F7; font-size: .93rem; color: #344054;}
-.fact:last-child {border-bottom: 0;}
-.fact b {color: #101828; font-variant-numeric: tabular-nums; text-align: right;}
-.answer {padding: 12px 0; border-bottom: 1px solid #F2F4F7;}
-.answer:last-child {border-bottom: 0;}
-.answer .q {font-weight: 600; color: #101828; font-size: .98rem;}
-.answer .a {color: #344054; font-size: .94rem; margin-top: 3px; line-height: 1.55;}
-.act {padding: 12px 0 12px; border-bottom: 1px solid #F2F4F7;}
-.act:last-child {border-bottom: 0;}
-.act .top {display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 4px;}
-.act .what {font-weight: 600; color: #101828;}
-.act .ev {color: #475467; font-size: .9rem; margin-top: 3px;}
-.pill {font-size: .75rem; font-weight: 600; padding: 2px 8px; border-radius: 999px;
-  background: #F2F4F7; color: #344054; white-space: nowrap;}
-.pill.p1 {background: #FEF3F2; color: #B42318;}
-.pill.p2 {background: #FFFAEB; color: #B54708;}
-.pill.p3 {background: #F2F4F7; color: #344054;}
-.flag {padding: 12px 0; border-bottom: 1px solid #F2F4F7;}
-.flag:last-child {border-bottom: 0;}
-.flag a {font-weight: 600; color: #101828; text-decoration: none;}
-.flag a:hover {text-decoration: underline;}
-.flag .meta {color: #667085; font-size: .84rem; margin-top: 2px;}
-.flag .why2 {color: #344054; font-size: .92rem; margin-top: 4px;}
-.quote {background: #F8FAFC; border: 1px solid #E4E7EC; border-radius: 10px; padding: 8px 12px;
-  margin: 6px 0; color: #344054; font-size: .93rem;}
-.quote span {color: #667085; font-size: .8rem;}
-[data-testid="stCode"] pre, [data-testid="stCode"] code {
-  font-family: "Source Sans Pro", "Source Sans", "Segoe UI", sans-serif !important;
-  font-size: 1rem !important; color: #101828 !important; line-height: 1.5 !important; white-space: pre-wrap !important;}
-[data-testid="stCode"] pre {background: #F8FAFC !important; border: 1px solid #E4E7EC;}
-.side-brand {font-size: 1.1rem; font-weight: 700; color: #101828; line-height: 1.25; margin-bottom: 2px;}
-.side-brand span {display: block; font-size: .85rem; font-weight: 400; color: #667085;}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
 
-pio.templates["clean"] = go.layout.Template(layout=go.Layout(
-    paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", font=dict(color="#475467", family=CHART_FONT, size=13),
-    xaxis=dict(gridcolor="#F0F2F5", zerolinecolor="#D0D5DD", linecolor="#D0D5DD", ticks="", showline=True),
-    yaxis=dict(gridcolor="#F0F2F5", zerolinecolor="#D0D5DD", linecolor="#D0D5DD", ticks=""),
-    margin=dict(t=30, l=8, r=16, b=8),
-    legend=dict(bgcolor="rgba(0,0,0,0)", orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, title_text=""),
-    hoverlabel=dict(bgcolor="#FFFFFF", bordercolor="#D0D5DD", font=dict(color=INK, family=CHART_FONT))))
 
-
-# ---------------- HELPERS ----------------
-def show(fig, height=None):
-    fig.update_layout(template="plotly_white+clean", paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
-                      font=dict(color="#475467", family=CHART_FONT, size=13))
-    axis = dict(gridcolor="#F0F2F5", zerolinecolor="#D0D5DD", linecolor="#D0D5DD")
-    fig.update_xaxes(**axis)
-    fig.update_yaxes(**axis)
-    if height:
-        fig.update_layout(height=height)
-    st.plotly_chart(fig, theme=None, config={"displaylogo": False})
-
-
+# ---------------- helpers ----------------
 def html(s):
     st.markdown(s, unsafe_allow_html=True)
 
@@ -151,649 +201,585 @@ def esc(s):
     return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def card(name):
-    return st.container(key=f"card_{name}")
+def box(name):
+    return st.container(key=f"box_{name}")
 
 
-def card_head(title, sub=""):
-    html(f'<div class="card-h"><h4>{title}</h4><p>{sub}</p></div>')
+def box_head(title, right=""):
+    html(f'<div class="bh"><h3>{title}</h3><span>{right}</span></div>')
 
 
-def page_head(crumb, title, sub, tags=()):
-    tag_html = "".join(f'<span class="tag {cls}">{t}</span> ' for t, cls in tags)
-    html(f'<div class="page-h"><div><p class="crumb">{crumb}</p><h1>{title}</h1>'
-         f'<p class="sub">{sub}</p></div><div>{tag_html}</div></div>')
+def top(title, sub):
+    html(f'<div class="top"><div><h1>{title}</h1><p>{sub}</p></div>'
+         f'<div class="ws"><i>{WS_INITIAL}</i>{esc(WS_LABEL)}</div></div>')
 
 
-def kpi_cards(items):
-    cells = []
-    for lbl, val, chip, tone, note in items:
-        chip_html = f'<span class="chip {tone}">{chip}</span>' if chip else ""
-        cells.append(f'<div class="kpi"><div class="lbl">{lbl}</div><div class="row"><span class="val">{val}</span>'
-                     f'{chip_html}</div><div class="note">{note}</div></div>')
-    html(f'<div class="kpis">{"".join(cells)}</div>')
+def kpis(items):
+    cells = "".join(f'<div class="kpi {cls}"><div class="l">{l}</div><div class="v">{v}</div><div class="n">{n}</div></div>'
+                    for l, v, n, cls in items)
+    html(f'<div class="kpis">{cells}</div>')
 
 
-def segmented(label, options, key, default):
+def bars(rows, hot=()):
+    mx = max([v for _, v, _ in rows] + [1e-9])
+    html("".join(f'<div class="bar"><div class="row">{esc(k)}<span>{lbl}</span></div><div class="track">'
+                 f'<div class="fill {"hot" if k in hot else ""}" style="width:{v / mx * 100:.0f}%"></div></div></div>'
+                 for k, v, lbl in rows))
+
+
+def rupees(x):
+    if x >= 100_000:
+        return f"Rs {x / 100_000:.1f} lakh"
+    return f"Rs {x:,.0f}"
+
+
+def pick(label, options, key, default):
     if key not in st.session_state:
         st.session_state[key] = default
     if hasattr(st, "segmented_control"):
-        val = st.segmented_control(label, options, key=key)
+        v = st.segmented_control(label, options, key=key, label_visibility="collapsed")
     else:
-        val = st.radio(label, options, key=key, horizontal=True)
-    return default if val is None else val
+        v = st.radio(label, options, key=key, horizontal=True, label_visibility="collapsed")
+    return default if v is None else v
 
 
-def pct(x, digits=0):
-    return f"{x * 100:.{digits}f}%"
+def avatar(name):
+    palette = ["#5B4BDB", "#F26B3A", "#12A150", "#2A78D6", "#C2410C", "#9E77ED", "#0E9384"]
+    return f'<div class="av" style="background:{palette[sum(map(ord, str(name))) % len(palette)]}">{esc(str(name)[:1].upper())}</div>'
 
 
-# ---------------- DATA ----------------
+# ---------------- data ----------------
 @st.cache_data
 def load():
     com = pd.read_csv(PROC / "comments_labeled.csv")
     vids = pd.read_csv(PROC / "videos_enriched.csv")
     seg = pd.read_csv(PROC / "comment_segments.csv")
     com = com.drop(columns=["channel", "title", "source", "channel_country"], errors="ignore")
-    com = com.merge(vids[["video_id", "post_type", "channel", "title", "format", "content_type", "url"]],
+    com = com.merge(vids[["video_id", "post_type", "channel", "channel_id", "title", "format", "content_type", "url"]],
                     on="video_id", how="left").merge(seg[["comment_id", "segment"]], on="comment_id", how="left")
-    answered = set(com[com.owner_reply].thread)
-    com["answered"] = com.thread.isin(answered)
-    tables = {n: pd.read_csv(PROC / f"{n}.csv") for n in
-              ["segments", "unusual_posts", "creator_leads", "city_mentions", "action_plan", "clusters",
-               "cluster_map", "post_audience_types", "content_summary"]}
-    findings = json.loads((PROC / "findings.json").read_text())
+    com["answered"] = com.thread.isin(set(com[com.owner_reply].thread))
+    unusual = pd.read_csv(PROC / "unusual_posts.csv")
     metrics = json.loads((PROC / "method_metrics.json").read_text())
+    clusters = pd.read_csv(PROC / "clusters.csv")
+    cmap = pd.read_csv(PROC / "cluster_map.csv")
     bench = pd.read_csv(PROC / "benchmark.csv") if (PROC / "benchmark.csv").exists() else None
-    return com, vids, tables, findings, metrics, bench
+    return com, vids, unusual, metrics, clusters, cmap, bench
 
 
-com_all, vids_all, T, F, M, BENCH = load()
-BRANDS = CORE + sorted(b for b in vids_all.brand.unique() if b not in CORE)
+COM, VIDS, UNUSUAL, METRICS, CLUSTERS, CMAP, BENCH = load()
+BRANDS = CORE + sorted(b for b in VIDS.brand.unique() if b not in CORE)
+
+if hasattr(st, "logo"):
+    st.logo(str(ASSETS / "logo.png"), icon_image=str(ASSETS / "logo_icon.png"))
 
 with st.sidebar:
-    html('<div class="side-brand">Footwear audience engine<span>Project 3 · Big Data Analytics</span></div>')
-    view = st.selectbox("Brands", ["All 8 brands", "Core brands (Borjan, Servis, Ndure)"] + BRANDS, key="brand_view")
-    st.caption("Real public YouTube comments and video stats, collected with the official YouTube Data API.")
+    ws = st.selectbox("Workspace", ["All brands (agency view)", "Core brands (Borjan, Servis, Ndure)"] + BRANDS,
+                      key="workspace")
+    with st.expander("Money assumptions"):
+        PRICE = st.number_input("Average pair price (Rs)", 1000, 20000, 4500, 500, key="price")
+        CONV = st.slider("Askers who would buy if answered (%)", 1, 40, 10, key="conv") / 100
+        st.caption("Used only for the missed-sales estimate. Change them to match the brand.")
+    st.caption(f"Real public YouTube data · collected {DATA_DATE}")
 
-if view == "All 8 brands":
-    picked = BRANDS
-elif view.startswith("Core"):
-    picked = CORE
-else:
-    picked = [view]
-com = com_all[com_all.brand.isin(picked)]
+PICKED = BRANDS if ws.startswith("All") else (CORE if ws.startswith("Core") else [ws])
+WS_LABEL = "All 8 brands" if ws.startswith("All") else ("Borjan · Servis · Ndure" if ws.startswith("Core") else ws)
+WS_INITIAL = "A" if ws.startswith("All") else ("C" if ws.startswith("Core") else ws[:1])
+com = COM[COM.brand.isin(PICKED)]
 cust = com[~com.owner_reply]
-vids = vids_all[vids_all.brand.isin(picked)]
-REAL_TAG = ("Real YouTube data", "real")
-VIEW_TAG = (view if len(picked) > 1 else picked[0], "")
+vids = VIDS[VIDS.brand.isin(PICKED)]
+top_level = cust[~cust.is_reply]
+buy_q = top_level[top_level.intent == "high"]
+waiting = buy_q[~buy_q.answered]
+MISSED = len(waiting) * CONV * PRICE
+
+
+def cities(df):
+    pats = {"Lahore": r"lahore|lhr", "Karachi": r"karachi|khi", "Faisalabad": r"faisalabad|fsd",
+            "Rawalpindi": r"pindi|rawalpindi", "Islamabad": r"islamabad|isb", "Hyderabad": r"hyderabad",
+            "Multan": r"multan", "Sialkot": r"sialkot", "Peshawar": r"peshawar", "Gujranwala": r"gujranwala"}
+    t = df.text.astype(str).str.lower()
+    out = [(c, int(t.str.contains(rf"\b(?:{p})\b").sum())) for c, p in pats.items()]
+    return sorted([o for o in out if o[1]], key=lambda x: -x[1])
+
+
+def creator_leads(df):
+    q = df[(df.intent == "high") & (~df.is_reply) & (df.post_type == CREATOR_POST)]
+    g = q.groupby(["channel", "channel_id"]).agg(buyers=("comment_id", "count"), brands=("brand", lambda s: ", ".join(s.value_counts().index[:2])),
+                                                 answered=("answered", "mean")).reset_index()
+    return g.sort_values("buyers", ascending=False)
+
+
+def campaigns():
+    """Ready-to-run campaign ideas, each backed by a number from the data."""
+    out = []
+    own_q = buy_q[buy_q.post_type == BRAND_POST]
+    out.append(dict(
+        title="24-hour reply promise", brand=WS_LABEL, impact="High impact", effort="Low effort", channel="YouTube comments",
+        why=f"{len(waiting):,} buying questions are waiting for a reply (≈ {rupees(MISSED)} in missed sales). "
+            f"On the brands' own videos, {int(own_q.answered.sum())} of {len(own_q)} were answered.",
+        do="Assign one person to clear the Leads inbox every morning with the ready replies.",
+        en="Got a question about price, size or delivery? Comment below and we'll reply within 24 hours. 💬",
+        ru="Price, size ya delivery ka sawal hai? Comment karein, hum 24 ghante mein jawab denge. 💬"))
+    leads = creator_leads(cust)
+    if len(leads):
+        tops = ", ".join(leads.channel.head(3))
+        out.append(dict(
+            title="Creator sale-vlog partnership", brand=WS_LABEL, impact="High impact", effort="Medium effort", channel="Creators",
+            why=f"Creator videos hold {int(leads.buyers.sum()):,} buying questions the brand never sees. Top: {tops}.",
+            do="Send top creators a price list, size chart and order link to pin under their next video.",
+            en="Brief for creators: show 5 best-sellers with price on screen, try one pair on, pin the order link and sale end date.",
+            ru="Creator brief: 5 best-sellers price ke saath dikhayein, ek joota pehen kar dikhayein, order link aur sale ki last date pin karein."))
+    cl = cities(cust)
+    if cl:
+        c1 = cl[0][0]
+        c2 = cl[1][0] if len(cl) > 1 else ""
+        out.append(dict(
+            title=f"{c1}{' & ' + c2 if c2 else ''} city ads", brand=WS_LABEL, impact="Medium impact", effort="Low effort",
+            channel="Instagram + Facebook ads",
+            why=f"{int((cust.segment == 'Where-can-I-buy askers').sum()):,} comments ask where to buy; "
+                + ", ".join(f"{c} ({n})" for c, n in cl[:3]) + " are named most.",
+            do="Run location-targeted ads that name the branch and show the online order link.",
+            en=f"Now in {c1}! Visit our nearest store or order online with cash on delivery. 📍",
+            ru=f"Ab {c1} mein! Qareebi store aayein ya online order karein, cash on delivery ke saath. 📍"))
+    until = int(cust.text.str.lower().str.contains(r"kab tak|kb tk|kab tk|kb tak|until when|till when|last date").sum())
+    deal = int((cust.segment == "Deal hunters").sum())
+    if deal:
+        out.append(dict(
+            title="Sale countdown posts", brand=WS_LABEL, impact="Medium impact", effort="Low effort", channel="Stories + Shorts",
+            why=f"{deal:,} deal-hunter comments; {until} ask when a sale starts or ends ('sale kab tak hai?').",
+            do="Post the sale end date on day 1, then a 3-2-1 countdown with best-sellers and sizes left.",
+            en="⏳ Only 3 days left! Flat 30% off on best-sellers. Sale ends Sunday night. Shop now.",
+            ru="⏳ Sirf 3 din baqi! Best-sellers par flat 30% off. Sale Sunday raat khatam. Abhi order karein."))
+    v = vids.copy()
+    v["price_in_title"] = v.title.str.lower().str.contains(r"price|\brs\.?\s?\d|\d{3,5}\s?(?:rs|pkr)")
+    x = cust.merge(v[["video_id", "price_in_title"]], on="video_id")
+    if x.price_in_title.any() and (~x.price_in_title).any():
+        a, b = (x[x.price_in_title].need == "price").mean(), (x[~x.price_in_title].need == "price").mean()
+        if a < b:
+            out.append(dict(
+                title="Prices on screen test", brand=WS_LABEL, impact="Medium impact", effort="Low effort", channel="Shorts + Reels",
+                why=f"Videos with prices in the title get {a:.1%} price questions vs {b:.1%} without ({1 - a / b:.0%} fewer).",
+                do="A/B test: same video, one version with prices on screen, one without. Compare questions and clicks.",
+                en="New arrivals with prices 👟 Rs 3,999 | Rs 4,499 | Rs 5,999. Sizes 36–45. Order now.",
+                ru="Naye articles qeemat ke saath 👟 Rs 3,999 | Rs 4,499 | Rs 5,999. Size 36–45. Abhi order karein."))
+    if "Servis" in PICKED:
+        s = cust[cust.brand == "Servis"]
+        out.append(dict(
+            title="Servis throwback ad", brand="Servis", impact="High impact", effort="Medium effort", channel="YouTube + Reels",
+            why=f"{(s.need == 'nostalgia_ad').mean():.0%} of Servis comments are about its classic ads; a 2012 ad still gets comments in 2026.",
+            do="A/B test a modern remake of the classic ad against a normal product ad, same budget and audience.",
+            en="Remember this one? 😄 The classic is back, with a 2026 twist. Same comfort, new style.",
+            ru="Ye ad yaad hai? 😄 Classic wapas aa gaya, 2026 ke andaz mein. Wahi aaram, naya style."))
+    size = int((cust.segment == "Size & fit askers").sum())
+    if size:
+        out.append(dict(
+            title="Size guide reel", brand=WS_LABEL, impact="Low impact", effort="Low effort", channel="Reels + pinned post",
+            why=f"{size} comments ask about size or fit; wrong sizes mean exchanges and bad reviews.",
+            do="Post a 15-second reel: EU / UK / PK size chart and which articles run small or large.",
+            en="Not sure about your size? 📏 Here's our EU / UK / PK size guide. Easy exchange if it doesn't fit.",
+            ru="Size ka masla? 📏 Ye raha EU / UK / PK size guide. Fit na ho to aasaan exchange."))
+    return out
 
 
 # =====================================================================
-# OVERVIEW
-# =====================================================================
-def page_overview():
-    page_head("Dashboard / Overview", "What Pakistani footwear shoppers are really asking for",
-              "An engine that groups real YouTube comments into audience needs, compares content, flags unusual "
-              "posts and turns it all into actions for the marketing team.", [VIEW_TAG, REAL_TAG])
-    hi = cust[cust.intent == "high"]
-    top_q = hi[~hi.is_reply]
-    own = top_q[top_q.post_type == "Brand's own post"]
-    need_mix = cust.need_label.value_counts(normalize=True)
-    top_buy = cust[cust.need_label.isin(BUY_NEEDS)].need_label.value_counts()
-    kpi_cards([
-        ("Customer comments", f"{len(cust):,}", f"{cust.author.nunique():,} people", "neutral",
-         f"on {vids.video_id.nunique():,} videos, {cust.brand.nunique()} brand(s)"),
-        ("Buying questions", f"{len(hi):,}", pct(len(hi) / max(len(cust), 1)), "neutral",
-         "price, where to buy, how to order, size, contact (incl. replies in threads)"),
-        ("Answered on brand posts", f"{int(own.answered.sum())} of {len(own)}",
-         "missed sales" if len(own) and own.answered.mean() < 0.5 else "", "bad",
-         "buying questions the brand replied to on its own videos"),
-        ("Top buying need", top_buy.index[0] if len(top_buy) else "-", pct(top_buy.iloc[0] / len(cust)) if len(top_buy) else "",
-         "neutral", "share of all customer comments"),
+def page_today():
+    top("Today's opportunities", "Buyers waiting, what they want and what to do first.")
+    own = buy_q[buy_q.post_type == BRAND_POST]
+    cl = cities(cust)
+    kpis([
+        ("Missed sales (estimate)", rupees(MISSED), f"{len(waiting):,} buyers asked and got no reply", "money"),
+        ("Buying questions", f"{len(buy_q):,}", f"{len(buy_q) / max(len(top_level), 1):.0%} of all comments", ""),
+        ("Your reply rate", f"{own.answered.mean():.0%}" if len(own) else "–",
+         f"{int(own.answered.sum())} of {len(own)} answered on your own videos" if len(own) else "no buying questions on own videos", ""),
+        ("Hottest city", cl[0][0] if cl else "–", f"{cl[0][1]} shoppers asked about it" if cl else "", ""),
     ])
-
-    left, right = st.columns([7, 5], gap="medium")
-    with left:
-        with card("answers"):
-            card_head("The five questions, answered", "Short answers; each page has the detail")
-            sv = vids.groupby("post_type").agg(cpk=("comments_per_1k", "median"), views=("views", "median"))
-            hi_share = cust.groupby("post_type").intent.apply(lambda s: (s == "high").mean())
-            ct = vids.groupby("content_type").agg(views=("views", "median"), cpk=("comments_per_1k", "median"), n=("video_id", "count"))
-            ct = ct[ct.n >= 5]
-            unusual = T["unusual_posts"][T["unusual_posts"].brand.isin(picked)]
-            segs = cust.groupby("segment").author.nunique().sort_values(ascending=False)
-            buy_segs = segs[segs.index.isin(["Where-can-I-buy askers", "Price checkers", "Deal hunters",
-                                             "Order & delivery askers", "Contact seekers", "Size & fit askers"])]
-            items = [
-                ("1. Which content attracts attention?",
-                 (f"<b>{ct.views.idxmax()}</b> gets the most views (median {ct.views.max():,.0f}), but "
-                  f"<b>{ct.cpk.idxmax()}</b> gets people talking ({ct.cpk.max():.1f} comments per 1,000 views). "
-                  if len(ct) else "") +
-                 (f"Creator posts earn far more conversation per view than brand posts "
-                  f"({sv.cpk[CREATOR_POST]:.2f} vs {sv.cpk[BRAND_POST]:.2f} comments per 1,000 views)."
-                  if CREATOR_POST in sv.index and BRAND_POST in sv.index else "")),
-                ("2. What does the audience want?",
-                 "Beyond praise, the biggest needs are " + ", ".join(
-                     f"<b>{n.lower()}</b> ({pct(need_mix.get(n, 0))})" for n in top_buy.index[:3]) + "."),
-                ("3. Which patterns are unusual?",
-                 f"<b>{len(unusual)}</b> posts stand out from similar posts: "
-                 f"{(unusual.what_to_do.str.startswith('Learn')).sum()} to learn from, "
-                 f"{(unusual.what_to_do.str.startswith('Inv')).sum()} to investigate."),
-                ("4. Which audience needs should the brand address?",
-                 "Largest buying groups: " + ", ".join(f"<b>{s}</b> ({n:,})" for s, n in buy_segs.head(3).items()) + "."),
-                ("5. What should the team do next?",
-                 f"Answer the buying questions ({int(own.answered.sum())} of {len(own)} answered on brand posts), "
-                 f"work with the creators who already get them, show prices up front and name the city in ads. "
-                 f"See the Action plan."),
-            ]
-            html("".join(f'<div class="answer"><div class="q">{q}</div><div class="a">{a}</div></div>' for q, a in items))
-    with right:
-        with card("needmix"):
-            card_head("What the comments are about", f"{len(cust):,} customer comments, by main need")
-            mix = need_mix.rename_axis("need").reset_index(name="share").iloc[::-1]
-            fig = go.Figure(go.Bar(y=mix.need, x=mix.share * 100, orientation="h",
-                                   marker_color=[NEED_COLORS.get(n, GREY) for n in mix.need],
-                                   text=[f"{s * 100:.1f}%" for s in mix.share], textposition="outside", cliponaxis=False,
-                                   hovertemplate="%{y}: %{x:.1f}%<extra></extra>"))
-            fig.update_layout(xaxis_title="Share of comments (%)", showlegend=False, margin=dict(t=6),
-                              xaxis_range=[0, mix.share.max() * 118], yaxis=dict(ticksuffix="  ", showline=False))
-            show(fig, 430)
-            st.caption("Warm colours are buying needs. Grey is off-topic or unclear.")
-
-    with card("series"):
-        card_head("One footwear marketing system, three projects", "How this project connects to the first two")
-        html('<div class="why"><b>Project 1</b> measured how customers feel about Borjan, Servis and Ndure. '
-             '<b>Project 2</b> decided where each brand should spend its ad budget and what the ads should say. '
-             '<b>Project 3</b> finds the audience groups behind the comments, so the ad copy angles from Project 2 '
-             '(price, size, delivery, quality) can be aimed at real groups of shoppers, and the reply gaps show where '
-             'sales are slipping away.</div>')
-        st.markdown(f"[Project 1 repo]({P1_URL}) · [Project 2 repo]({P2_URL}) · [Project 2 dashboard]({P2_APP})")
-
-
-# =====================================================================
-# CONTENT
-# =====================================================================
-def page_content():
-    page_head("Dashboard / Content", "Which content attracts attention?",
-              "Views show reach; likes and comments per 1,000 views show how strongly people react. "
-              "Buying-question share shows whether the content moves people toward a purchase.", [VIEW_TAG, REAL_TAG])
-    metric_names = {"Median views": "views", "Likes per 1,000 views": "likes_per_1k",
-                    "Comments per 1,000 views": "comments_per_1k", "Buying-question share": "high_intent_share"}
     c1, c2 = st.columns([3, 2], gap="medium")
     with c1:
-        with card("attention"):
-            card_head("Reach vs conversation", "Each bubble is a content type and format; size = number of videos")
-            g = vids.groupby(["content_type", "format"]).agg(videos=("video_id", "count"), views=("views", "median"),
-                                                              cpk=("comments_per_1k", "median")).reset_index()
-            g = g[g.videos >= 3]
-            palette = ["#2A78D6", "#EB6834", "#1BAF7A", "#EDA100", "#E87BA4", "#9E77ED", "#1E3A5F", "#98A2B3"]
-            colors = {c: palette[i % len(palette)] for i, c in enumerate(sorted(g.content_type.unique()))}
-            fig = go.Figure()
-            for (ctype, fmt), d in g.groupby(["content_type", "format"]):
-                fig.add_trace(go.Scatter(
-                    x=d.views, y=d.cpk, mode="markers", name=f"{ctype} ({fmt})", legendgroup=ctype,
-                    marker=dict(size=np.sqrt(d.videos) * 5 + 8, color=colors[ctype], opacity=.8,
-                                symbol="circle" if fmt == "Video" else "diamond", line=dict(color="#FFFFFF", width=1)),
-                    customdata=d.videos,
-                    hovertemplate=f"{ctype} ({fmt})<br>median views %{{x:,.0f}}<br>%{{y:.2f}} comments per 1,000 views"
-                                  "<br>%{customdata} videos<extra></extra>"))
-            fig.update_layout(xaxis=dict(type="log", title="Median views (log scale)"),
-                              yaxis=dict(type="log", title="Comments per 1,000 views (log)"),
-                              legend=dict(orientation="v", x=1.02, y=1, xanchor="left", yanchor="top", font=dict(size=11)),
-                              margin=dict(r=10))
-            show(fig, 440)
-            st.caption("Circles are long videos, diamonds are Shorts. Top right is the sweet spot: seen by many and "
-                       "talked about. Only groups with 3+ videos are shown; hover for details.")
+        with box("todo"):
+            box_head("Do these 3 things today", "From your data")
+            camps = campaigns()[:3]
+            html("".join(f'<div class="todo"><div class="num">{i}</div><div><div class="t">{esc(c["title"])}</div>'
+                         f'<div class="w">{esc(c["do"])}</div></div></div>' for i, c in enumerate(camps, 1)))
+            b1, b2 = st.columns(2)
+            with b1:
+                st.page_link(PAGES["inbox"], label=f"Open leads inbox ({len(waiting):,})", icon=":material/inbox:")
+            with b2:
+                st.page_link(PAGES["campaigns"], label="See all campaign ideas", icon=":material/rocket_launch:")
     with c2:
-        with card("brand_vs_creator"):
-            card_head("Brand posts vs creator posts", "Medians per video")
-            pt = vids.groupby("post_type").agg(videos=("video_id", "count"), views=("views", "median"),
-                                               lk=("likes_per_1k", "median"), cm=("comments_per_1k", "median"))
-            hi_share = cust.groupby("post_type").intent.apply(lambda s: (s == "high").mean())
+        with box("asks"):
+            box_head("What customers ask", f"{len(cust):,} comments")
+            order = ["Availability / location", "Price inquiry", "Discount / sale", "Delivery / how to order",
+                     "Quality / comfort", "Contact / link request", "Complaint / problem", "Size / fit"]
+            vc = cust.need_label.value_counts()
+            rows = [(SHORT_NEED[k], vc.get(k, 0), f"{vc.get(k, 0):,}") for k in order if vc.get(k, 0)]
+            bars(sorted(rows, key=lambda r: -r[1])[:6], hot={"Where to buy", "Price", "Ordering & delivery", "Contact details", "Size & fit"})
+    c3, c4 = st.columns(2, gap="medium")
+    with c3:
+        with box("trend"):
+            box_head("Trending in the last 6 months", "vs earlier comments")
+            d = pd.to_datetime(cust.published)
+            cut = d.max() - pd.Timedelta(days=183)
+            a = cust[d >= cut].need_label.value_counts(normalize=True)
+            b = cust[d < cut].need_label.value_counts(normalize=True)
+            diff = (a.sub(b, fill_value=0) * 100).drop(["Other / off-topic", "General praise / blessing", "Praise for the video"], errors="ignore")
             rows = ""
-            for label, col, fmt in [("Videos", "videos", "{:,.0f}"), ("Median views", "views", "{:,.0f}"),
-                                    ("Likes per 1,000 views", "lk", "{:.1f}"), ("Comments per 1,000 views", "cm", "{:.2f}")]:
-                vals = " · ".join(f"{SHORT_POST[p]}: {fmt.format(pt.loc[p, col])}" for p in pt.index)
-                rows += f'<div class="fact"><span>{label}</span><b>{vals}</b></div>'
-            vals = " · ".join(f"{SHORT_POST[p]}: {hi_share.get(p, 0):.0%}" for p in pt.index)
-            rows += f'<div class="fact"><span>Buying questions</span><b>{vals}</b></div>'
+            for k, v in pd.concat([diff.nlargest(3), diff.nsmallest(2)]).items():
+                cls, arrow = ("up", "▲") if v > 0 else ("down", "▼")
+                rows += f'<div class="bar"><div class="row">{esc(SHORT_NEED.get(k, k))}<span class="{cls}">{arrow} {abs(v):.1f} pts</span></div></div>'
             html(rows)
-            st.caption("Brand posts reach more people (likely paid promotion), but creator posts get far more "
-                       "reaction and buying questions per view.")
-        with card("metric_pick"):
-            card_head("Compare content types", "Pick a measure")
-            m = segmented("Measure", list(metric_names), "content_metric", "Comments per 1,000 views")
-            col = metric_names[m]
-            agg = "mean" if col == "high_intent_share" else "median"
-            d = vids.groupby("content_type")[col].agg(agg).sort_values()
-            fig = go.Figure(go.Bar(y=d.index, x=d.values * (100 if col == "high_intent_share" else 1), orientation="h",
-                                   marker_color=NAVY, hovertemplate="%{y}: %{x:,.2f}<extra></extra>"))
-            fig.update_layout(xaxis_title=m + (" (%)" if col == "high_intent_share" else ""), margin=dict(t=6),
-                              yaxis=dict(ticksuffix="  ", showline=False), showlegend=False)
-            show(fig, 300)
-    with st.expander("Full content table"):
-        t = T["content_summary"]
-        st.dataframe(t.style.format({"median_views": "{:,.0f}", "median_views_per_day": "{:,.1f}",
-                                     "median_likes_per_1k": "{:.1f}", "median_comments_per_1k": "{:.2f}",
-                                     "high_intent_share": "{:.0%}"}), hide_index=True)
-        st.caption("YouTube's API doesn't share 'shares', so shares are not included. Instagram data can be added "
-                   "later with the same columns (platform = Instagram).")
+            st.caption(f"{int((d >= cut).sum()):,} recent comments vs {int((d < cut).sum()):,} older ones.")
+    with c4:
+        with box("whereq"):
+            box_head("Where buyers ask", "Buying questions by video type")
+            mix = buy_q.post_type.value_counts()
+            bars([("On creator videos", mix.get(CREATOR_POST, 0), f"{mix.get(CREATOR_POST, 0):,}"),
+                  ("On your own videos", mix.get(BRAND_POST, 0), f"{mix.get(BRAND_POST, 0):,}")], hot={"On creator videos"})
+            st.caption("Most buyers ask under creators' sale vlogs and reviews, where the brand never replies.")
 
 
 # =====================================================================
-# AUDIENCE WANTS
-# =====================================================================
-def page_wants():
-    page_head("Dashboard / Audience", "What does the audience want?",
-              "Every comment is labelled with its main need. Word lists in English, Roman Urdu and Urdu label the "
-              "clear cases; a multilingual embedding model labels similar comments the word lists miss.",
-              [VIEW_TAG, REAL_TAG])
-    left, right = st.columns([3, 2], gap="medium")
-    with left:
-        with card("brand_needs"):
-            card_head("Needs by brand", "Share of each brand's customer comments (praise and off-topic hidden)")
-            hide = {"Other / off-topic", "General praise / blessing", "Praise for the video"}
-            d = cust[~cust.need_label.isin(hide)]
-            tab = (pd.crosstab(cust.brand, cust.need_label, normalize="index") * 100)
-            cols = [c for c in NEED_COLORS if c in tab.columns and c not in hide]
-            order = [b for b in BRANDS if b in tab.index]
-            fig = go.Figure()
-            for c in cols:
-                fig.add_trace(go.Bar(y=order, x=tab.loc[order, c], name=c, orientation="h",
-                                     marker_color=NEED_COLORS[c], hovertemplate=c + ": %{x:.1f}%<extra>%{y}</extra>"))
-            fig.update_layout(barmode="stack", xaxis_title="Share of the brand's comments (%)",
-                              yaxis=dict(autorange="reversed", ticksuffix="  ", showline=False),
-                              legend=dict(font=dict(size=11)), margin=dict(t=90))
-            show(fig, 470)
-            st.caption(f"Based on {len(d):,} comments with a clear need.")
-    with right:
-        with card("examples"):
-            card_head("Hear it in their words", "Real comments for one need")
-            needs = [n for n in NEED_COLORS if n in set(cust.need_label)]
-            pick = st.selectbox("Need", needs, index=needs.index("Availability / location") if "Availability / location" in needs else 0,
-                                key="need_pick")
-            ex = cust[cust.need_label == pick].drop_duplicates("text")
-            ex = ex.sample(min(7, len(ex)), random_state=1) if len(ex) else ex
-            html("".join(f'<div class="quote">{esc(r.text)[:220]}<br><span>{r.brand} · {r.lang.replace("_", " ")}</span></div>'
-                         for r in ex.itertuples()))
-        with card("languages"):
-            card_head("Languages", "How shoppers write")
-            lang = cust.lang.replace({"roman_urdu": "Roman Urdu", "english": "English", "urdu": "Urdu",
-                                      "short_unclear": "Short / unclear", "emoji/symbols": "Emoji only"}).value_counts(normalize=True)
-            html("".join(f'<div class="fact"><span>{k}</span><b>{v:.0%}</b></div>' for k, v in lang.items()))
+def page_inbox():
+    top("Leads inbox", f"{len(waiting):,} buyers are waiting for a reply. Pick one, copy the reply, paste it on YouTube.")
+    items = top_level[(top_level.intent == "high") | (top_level.need == "complaint")]
+    items = items[~items.answered].copy()
+    items["ask"] = items.need.map(ASK)
+    items["where"] = np.where(items.post_type == BRAND_POST, "Your video", "Creator: " + items.channel.astype(str))
+    items = items.sort_values(["published", "likes"], ascending=False)
+    f1, f2 = st.columns([3, 2])
+    with f1:
+        kind = pick("Type", ["All", "Where to buy", "Price", "Order & delivery", "Size", "Contact", "Complaint"], "inbox_kind", "All")
+    with f2:
+        src = pick("Source", ["Everywhere", "Your videos", "Creator videos"], "inbox_src", "Everywhere")
+    if kind != "All":
+        items = items[items.ask == kind]
+    if src == "Your videos":
+        items = items[items.post_type == BRAND_POST]
+    elif src == "Creator videos":
+        items = items[items.post_type == CREATOR_POST]
 
-    with card("method"):
-        card_head("How the grouping works, and how well", "Discovery clustering and checks")
-        c1, c2 = st.columns([3, 2], gap="medium")
+    c1, c2 = st.columns([3, 2], gap="medium")
+    with c1:
+        with box("list"):
+            box_head("Messages", f"{len(items):,} waiting")
+            table = items[["published", "brand", "ask", "text", "where"]].rename(
+                columns={"published": "Date", "brand": "Brand", "ask": "Asking about", "text": "Comment", "where": "Posted on"})
+            sel = None
+            try:
+                ev = st.dataframe(table, hide_index=True, use_container_width=True, height=470, on_select="rerun",
+                                  selection_mode="single-row", key="inbox_table")
+                rows = getattr(getattr(ev, "selection", None), "rows", []) or []
+                sel = rows[0] if rows else None
+            except TypeError:
+                st.dataframe(table, hide_index=True, use_container_width=True, height=470)
+            st.download_button("Export leads (CSV)", items[["published", "brand", "ask", "text", "where", "url"]].to_csv(index=False),
+                               "leads_inbox.csv", "text/csv")
+    with c2:
+        with box("reply"):
+            if not len(items):
+                box_head("All clear", "")
+                html('<div class="note">No waiting messages for this filter. 🎉</div>')
+                return
+            r = items.iloc[sel if sel is not None and sel < len(items) else 0]
+            box_head("Reply", "Click a row to switch")
+            html(f'<div class="msg">{avatar(r.brand)}<div><div class="meta">{esc(r.brand)} · {esc(r.where)} · {r.published}</div>'
+                 f'<div class="txt">{esc(r.text)[:400]}</div></div></div>')
+            lang = pick("Language", ["Roman Urdu", "English"], "inbox_lang", "Roman Urdu")
+            link = st.text_input("Shop link", "the link in our bio", key="inbox_link")
+            key = r.need if r.need in REPLIES else "contact"
+            text = REPLIES[key]["ru" if lang == "Roman Urdu" else "en"].format(
+                brand=r.brand, link=link, price="____", end_date="____")
+            st.code(text, language=None)
+            st.caption("Use the copy icon on the reply, then paste it under the comment. Fill in any ____ first.")
+            if isinstance(r.url, str):
+                st.link_button("Open the video on YouTube", r.url, use_container_width=True)
+
+
+# =====================================================================
+def page_customers():
+    top("Your customers", "Everyone who commented, grouped by what they want.")
+    g = cust.groupby("segment").agg(people=("author", "nunique"), comments=("comment_id", "count"))
+    ready = g[g.index.isin([s for s, v in SEGMENT_CARD.items() if v[2] == "hot"])].people.sum()
+    kpis([
+        ("People who commented", f"{cust.author.nunique():,}", f"{len(cust):,} comments", ""),
+        ("Ready to buy", f"{ready:,}", "asked about price, stock, size, delivery or deals", "money"),
+        ("Need care", f"{int(g.people.get('Unhappy customers', 0)):,}", "complaints to fix", ""),
+        ("Fans", f"{int(g.people.get('Product fans', 0) + g.people.get('Supporters (general praise)', 0)):,}", "praise and love", ""),
+    ])
+    tiles = []
+    for segname, (emo, badge, tone, todo) in SEGMENT_CARD.items():
+        if segname not in g.index:
+            continue
+        sub = cust[(cust.segment == segname) & cust.need.isin(SEG_NEED[segname]) & (cust.label_source == "word list")]
+        sub = sub[sub.text.astype(str).str.len().between(15, 90)]
+        quote = sub.sort_values("likes", ascending=False).text.iloc[0] if len(sub) else ""
+        tiles.append(f'<div class="tile"><div class="h"><span class="e">{emo}</span><span class="badge {tone}">{badge}</span></div>'
+                     f'<div class="name">{esc(segname)}</div><div class="big">{int(g.loc[segname, "people"]):,} <small>people</small></div>'
+                     f'<div class="q">{"“" + esc(quote) + "”" if quote else ""}</div>'
+                     f'<div class="do"><b>Do:</b> {esc(todo)}</div></div>')
+    html(f'<div class="tiles">{"".join(tiles)}</div>')
+    st.write("")
+    with box("hear"):
+        box_head("Hear them out", "Real comments from one group")
+        names = [s for s in SEGMENT_CARD if s in g.index]
+        segname = st.selectbox("Group", names, key="cust_seg", label_visibility="collapsed")
+        ex = cust[(cust.segment == segname) & cust.need.isin(SEG_NEED[segname])].drop_duplicates("text")
+        ex = ex.sample(min(6, len(ex)), random_state=4) if len(ex) else ex
+        c1, c2 = st.columns(2)
+        for i, r in enumerate(ex.itertuples()):
+            with (c1 if i % 2 == 0 else c2):
+                html(f'<div class="quote">{esc(r.text)[:220]}<span>{esc(r.brand)} · {r.published}</span></div>')
+
+
+# =====================================================================
+def page_content():
+    top("Post this, not that", "What gets people talking and asking to buy, and who to partner with.")
+    pt = vids.groupby("post_type").agg(cm=("comments_per_1k", "median"), views=("views", "median"), lk=("likes_per_1k", "median"))
+    hi = cust.groupby("post_type").intent.apply(lambda s: (s == "high").mean())
+    if BRAND_POST in pt.index and CREATOR_POST in pt.index and pt.loc[BRAND_POST, "cm"] > 0:
+        s1, s2, s3 = st.columns(3)
+        with s1:
+            html(f'<div class="stat"><b>{pt.loc[CREATOR_POST, "cm"] / pt.loc[BRAND_POST, "cm"]:.0f}×</b>'
+                 f'<div>more comments per view on creator videos than on brand videos</div></div>')
+        with s2:
+            html(f'<div class="stat"><b>{hi.get(CREATOR_POST, 0):.0%} vs {hi.get(BRAND_POST, 0):.0%}</b>'
+                 f'<div>buying questions on creator vs brand videos</div></div>')
+        with s3:
+            html(f'<div class="stat"><b>{pt.loc[BRAND_POST, "views"] / max(pt.loc[CREATOR_POST, "views"], 1):.0f}×</b>'
+                 f'<div>more views on brand videos, mostly paid reach with little talk</div></div>')
+        st.write("")
+    g = vids.groupby(["content_type", "format"]).agg(n=("video_id", "count"), cm=("comments_per_1k", "median"),
+                                                     views=("views", "median"), hi=("high_intent_share", "mean")).reset_index()
+    g = g[(g.n >= 5) & (g.content_type != "Other / untitled")].sort_values("cm", ascending=False)
+    c1, c2 = st.columns(2, gap="medium")
+
+    def card(r, tone):
+        return (f'<div class="pc"><div class="t">{esc(r.content_type)} <span class="badge {tone}">{r.format}</span></div>'
+                f'<div class="m"><div><b>{r.cm:.2f}</b>comments / 1k views</div><div><b>{r.hi:.0%}</b>buying questions</div>'
+                f'<div><b>{r.views:,.0f}</b>median views</div><div><b>{r.n}</b>videos</div></div></div>')
+    with c1:
+        with box("more"):
+            box_head("✅ Post more of this", "Most conversation per view")
+            html("".join(card(r, "ok") for r in g.head(3).itertuples()))
+    with c2:
+        with box("less"):
+            box_head("✋ Less of this", "Views without conversation")
+            html("".join(card(r, "grey") for r in g.tail(3).iloc[::-1].itertuples()))
+    c3, c4 = st.columns(2, gap="medium")
+    with c3:
+        with box("leaders"):
+            box_head("Creators to partner with", "Ranked by buyers asking on their videos")
+            ld = creator_leads(cust).head(8)
+            html("".join(f'<div class="lead"><div class="rank">{i}</div>{avatar(r.channel)}<div class="who">'
+                         f'<a href="https://www.youtube.com/channel/{r.channel_id}" target="_blank">{esc(r.channel)}</a>'
+                         f'<div>{esc(r.brands)} · creator answers {r.answered:.0%}</div></div>'
+                         f'<div class="n">{r.buyers}<span>buyers asked</span></div></div>'
+                         for i, r in enumerate(ld.itertuples(), 1)) or '<div class="note">No creator videos here.</div>')
+    with c4:
+        with box("standouts"):
+            box_head("Standout posts", "Far ahead of similar posts")
+            u = UNUSUAL[UNUSUAL.brand.isin(PICKED) & UNUSUAL.what_to_do.str.startswith("Learn")].head(5)
+            html("".join(f'<div class="pc"><a href="{r.url}" target="_blank">{esc(r.title)[:80]}</a>'
+                         f'<div class="s">{esc(r.brand)} · {esc(r.channel)} · {int(r.views):,} views</div>'
+                         f'<div class="s" style="color:#0B7A3C;margin-top:6px">▲ {esc(r.unusual_because.split(";")[0])}</div></div>'
+                         for r in u.itertuples()) or '<div class="note">No standout posts here.</div>')
+
+
+# =====================================================================
+def page_competitors():
+    top("Competitors", "How each brand's audience compares, side by side.")
+    allc = COM[~COM.owner_reply]
+    rows = []
+    for b in BRANDS:
+        s = allc[allc.brand == b]
+        t = s[~s.is_reply]
+        own = t[(t.intent == "high") & (t.post_type == BRAND_POST)]
+        buy = s[s.need.isin(ASK) & (s.need != "complaint")].need.map(ASK).value_counts()
+        rows.append(dict(brand=b, comments=len(s), buying=(t.intent == "high").mean(), top=buy.index[0] if len(buy) else "–",
+                         reply=f"{int(own.answered.sum())} of {len(own)}" if len(own) else "–",
+                         complaints=(s.need == "complaint").mean(), buzz=(s.need == "nostalgia_ad").mean(),
+                         fans=s.need.isin(["praise_product", "general_praise"]).mean()))
+    t = pd.DataFrame(rows)
+    body = "".join(
+        f'<tr class="{"me" if r.brand in PICKED and len(PICKED) < len(BRANDS) else ""}"><td>{esc(r.brand)}</td>'
+        f'<td class="num">{r.comments:,}</td><td class="num">{r.buying:.0%}</td><td>{esc(r.top)}</td>'
+        f'<td class="num">{r.reply}</td><td class="num">{r.fans:.0%}</td><td class="num">{r.complaints:.1%}</td>'
+        f'<td class="num">{r.buzz:.0%}</td></tr>' for r in t.itertuples())
+    with box("cmp"):
+        box_head("Brand scorecard", "Highlighted rows = your workspace")
+        html('<table class="cmp"><tr><th>Brand</th><th>Comments</th><th>Buying questions</th><th>Top ask</th>'
+             f'<th>Replies on own videos</th><th>Fans</th><th>Complaints</th><th>Ad buzz</th></tr>{body}</table>')
+    st.write("")
+    with box("cmpchart"):
+        box_head("What each brand's customers ask about", "Share of the brand's comments")
+        needs = {"Where to buy": "availability", "Price": "price", "Sale": "discount_sale", "Order & delivery": "delivery_order",
+                 "Quality": "quality_comfort", "Complaints": "complaint"}
+        colors = ["#5B4BDB", "#F26B3A", "#E87BA4", "#2A78D6", "#12A150", "#D92D20"]
+        fig = go.Figure()
+        for (lbl, key), col in zip(needs.items(), colors):
+            vals = [(allc[allc.brand == b].need == key).mean() * 100 for b in BRANDS]
+            fig.add_trace(go.Bar(name=lbl, x=BRANDS, y=vals, marker_color=col,
+                                 hovertemplate=lbl + ": %{y:.1f}%<extra>%{x}</extra>"))
+        fig.update_layout(barmode="group", height=360, paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+                          font=dict(family=FONT, color="#4A4A63", size=12), margin=dict(t=30, l=6, r=6, b=6),
+                          legend=dict(orientation="h", y=1.08, x=0, title_text=""), yaxis=dict(title="% of comments", gridcolor="#F1F1F6"),
+                          xaxis=dict(linecolor="#ECECF3"), bargap=0.25)
+        st.plotly_chart(fig, theme=None, config={"displaylogo": False, "displayModeBar": False})
+
+
+# =====================================================================
+def page_campaigns():
+    top("Campaign ideas", "Smart suggestions built from your comments. Each one comes with ready ad copy.")
+    camps = campaigns()
+    for i in range(0, len(camps), 2):
+        cols = st.columns(2, gap="medium")
+        for col, c in zip(cols, camps[i:i + 2]):
+            with col:
+                tone = "hot" if c["impact"].startswith("High") else ("warm" if c["impact"].startswith("Medium") else "grey")
+                html(f'<div class="camp"><div class="tags"><span class="badge {tone}">{c["impact"]}</span>'
+                     f'<span class="badge ok">{c["effort"]}</span><span class="badge cool">{esc(c["channel"])}</span></div>'
+                     f'<div class="t">{esc(c["title"])}</div><div class="w">{esc(c["do"])}</div>'
+                     f'<div class="d">Why: {esc(c["why"])}</div></div>')
+                with st.expander("Ready ad copy"):
+                    st.code(c["en"], language=None)
+                    st.code(c["ru"], language=None)
+    st.write("")
+    with box("p2"):
+        box_head("Plan the budget in Project 2", "")
+        html('<div class="note">Turn these ideas into a spend plan: Project 2 splits the ad budget across Facebook, TikTok, '
+             'Instagram, Google and YouTube for the same brands, and writes ads around the same angles (price, size, delivery, quality).</div>')
+        st.link_button("Open the ad budget optimizer (Project 2)", P2_APP)
+
+
+# =====================================================================
+def page_report():
+    top("Client report", "A one-page snapshot to send to the brand. Download as PDF.")
+    from report_pdf import build_report
+    segs = cust.groupby("segment").author.nunique()
+    segs = segs[segs.index.isin([s for s, v in SEGMENT_CARD.items() if v[2] in ("hot", "bad")])].sort_values(ascending=False).head(5)
+    own = buy_q[buy_q.post_type == BRAND_POST]
+    camps = campaigns()[:3]
+    leads = creator_leads(cust).head(3)
+    cl = cities(cust)[:4]
+    ctx = dict(
+        workspace=WS_LABEL, date=f"data collected {DATA_DATE}",
+        kpis=[("Missed sales (estimate)", rupees(MISSED), f"{len(waiting):,} buyers waiting for a reply"),
+              ("Buying questions", f"{len(buy_q):,}", "price, stock, order, size, contact"),
+              ("Reply rate, own videos", f"{own.answered.mean():.0%}" if len(own) else "–", f"{int(own.answered.sum())} of {len(own)} answered"),
+              ("Hottest city", cl[0][0] if cl else "–", f"{cl[0][1]} mentions" if cl else "")],
+        actions=[(c["title"] + ": " + c["do"], c["why"]) for c in camps],
+        segments=[(s, int(n), SEGMENT_CARD[s][3]) for s, n in segs.items()],
+        cities=cl, creators=[(r.channel, r.brands, int(r.buyers)) for r in leads.itertuples()],
+        assumptions=f"Missed sales = unanswered buying questions x {CONV:.0%} who would buy x Rs {PRICE:,.0f} per pair. An estimate, not a measured figure.",
+        source=f"Source: {len(cust):,} public YouTube comments on {vids.video_id.nunique():,} videos, official YouTube Data API. Names removed.",
+        url=REPO_URL)
+    pdf = build_report(ctx)
+    c1, c2 = st.columns([3, 2], gap="medium")
+    with c1:
+        with box("preview"):
+            box_head(f"Client snapshot: {esc(WS_LABEL)}", f"data collected {DATA_DATE}")
+            html("".join(f'<div class="bar"><div class="row">{esc(l)}<span>{esc(v)}</span></div></div>' for l, v, _ in ctx["kpis"]))
+            html("<br><b>Do these first</b>" + "".join(f'<div class="todo"><div class="num">{i}</div><div><div class="t">{esc(c["title"])}</div>'
+                                                       f'<div class="w">{esc(c["do"])}</div></div></div>' for i, c in enumerate(camps, 1)))
+    with c2:
+        with box("dl"):
+            box_head("Download", "")
+            st.download_button("Download PDF report", pdf, f"joota_pulse_{WS_LABEL.replace(' ', '_').lower()}.pdf",
+                               "application/pdf", use_container_width=True, type="primary")
+            html('<div class="note" style="margin-top:10px">Switch the workspace in the sidebar to make a report for one brand. '
+                 'Adjust the money assumptions in the sidebar to match the brand.</div>')
+
+
+# =====================================================================
+def page_how():
+    top("How it works", "The method, the checks and the limits. For the curious (and for marking).")
+    t1, t2, t3, t4, t5 = st.tabs(["Pipeline", "Accuracy checks", "Big Data benchmark", "Data & privacy", "Limitations"])
+    with t1:
+        st.markdown(
+            "1. **Collect:** the official YouTube Data API finds videos about 8 Pakistani footwear brands (their own channels "
+            "plus creators' sale vlogs and reviews) and downloads every comment.\n"
+            "2. **Clean:** keep videos that name the brand, drop Indian and foreign videos (Bata's channel is Bata India, so "
+            "Bata is out), drop foreign-language and empty comments, remove phone numbers, e-mails and names.\n"
+            "3. **Understand:** word lists in English, Roman Urdu and Urdu tag clear needs (price, where to buy, delivery, size…). "
+            "A multilingual AI embedding model (`paraphrase-multilingual-mpnet-base-v2`) tags similar comments the word lists miss.\n"
+            "4. **Group:** K-Means clustering finds natural topic groups; each person is placed in one customer group.\n"
+            "5. **Compare content:** attention per video (views per day, likes and comments per 1,000 views, share of buying questions).\n"
+            "6. **Spot the unusual:** each video vs similar videos (robust z-scores), plus an Isolation Forest.\n"
+            "7. **Act:** rules turn the numbers into campaign ideas, inbox replies and a client report.")
+        st.markdown(f"Code: [{REPO_URL}]({REPO_URL})")
+    with t2:
+        c1, c2 = st.columns([2, 3])
         with c1:
-            cm = T["cluster_map"].merge(com_all[["comment_id", "brand", "text"]], on="comment_id")
-            cm = cm[cm.brand.isin(picked)]
-            names = T["clusters"].set_index("cluster").main_need_label
-            cm["group"] = cm.cluster.map(names)
-            cm = cm.sample(min(2500, len(cm)), random_state=0)
+            html(f'<div class="bar"><div class="row">Comments tagged by word lists<span>{METRICS["labelled_by_word_list"]:,}</span></div></div>'
+                 f'<div class="bar"><div class="row">Tagged by nearest neighbours (AI embeddings)<span>{METRICS["labelled_by_neighbours"]:,}</span></div></div>'
+                 f'<div class="bar"><div class="row">Neighbour tagging check, 5-fold<span>{METRICS["knn_cv_accuracy"]:.0%}</span></div></div>'
+                 f'<div class="bar"><div class="row">Topic clusters (best silhouette)<span>{METRICS["k"]}</span></div></div>'
+                 f'<div class="bar"><div class="row">Cluster–need match, embeddings (NMI)<span>{METRICS["nmi_embeddings_vs_needs"]:.2f}</span></div></div>'
+                 f'<div class="bar"><div class="row">Cluster–need match, TF-IDF baseline<span>{METRICS["nmi_tfidf_vs_needs"]:.2f}</span></div></div>')
+            st.caption("Embeddings group comments by need better than word counts (0.43 vs 0.34). Silhouette is low "
+                       "(about 0.14) because short comments overlap, so clusters are a guide, not hard lines.")
+        with c2:
+            cm = CMAP.merge(COM[["comment_id", "text"]], on="comment_id").sample(2500, random_state=0)
+            cm["group"] = cm.cluster.map(CLUSTERS.set_index("cluster").main_need_label)
             fig = go.Figure()
             for gname, d in cm.groupby("group"):
-                fig.add_trace(go.Scattergl(x=d.x, y=d.y, mode="markers", name=gname,
-                                           marker=dict(size=5, color=NEED_COLORS.get(gname, GREY), opacity=.65),
-                                           text=d.text.str[:80], hovertemplate="%{text}<extra>" + gname + "</extra>"))
-            fig.update_layout(xaxis=dict(visible=False), yaxis=dict(visible=False), legend=dict(font=dict(size=11)),
-                              margin=dict(t=70))
-            show(fig, 420)
-            st.caption("Each dot is a comment, placed by meaning (2-D view of the embeddings) and coloured by the "
-                       "K-Means cluster it fell into. Similar comments land together even in different languages.")
-        with c2:
-            html(f'<div class="fact"><span>Labelled by word lists</span><b>{M["labelled_by_word_list"]:,}</b></div>'
-                 f'<div class="fact"><span>Labelled by nearest neighbours</span><b>{M["labelled_by_neighbours"]:,}</b></div>'
-                 f'<div class="fact"><span>Neighbour check (5-fold accuracy)</span><b>{M["knn_cv_accuracy"]:.0%}</b></div>'
-                 f'<div class="fact"><span>Discovery clusters (best by silhouette)</span><b>{M["k"]}</b></div>'
-                 f'<div class="fact"><span>Cluster–need agreement, embeddings (NMI)</span><b>{M["nmi_embeddings_vs_needs"]:.2f}</b></div>'
-                 f'<div class="fact"><span>Cluster–need agreement, TF-IDF baseline</span><b>{M["nmi_tfidf_vs_needs"]:.2f}</b></div>')
-            st.caption("Embeddings group comments by need better than plain word counts (TF-IDF), which supports "
-                       "using them. Silhouette scores are low (about 0.14): short comments overlap a lot, so "
-                       "clusters are a guide, not hard boundaries.")
-        with st.expander("All discovery clusters"):
-            st.dataframe(T["clusters"][["cluster", "size", "main_need_label", "purity", "examples"]]
-                         .style.format({"purity": "{:.0%}"}), hide_index=True)
-
-
-# =====================================================================
-# SEGMENTS
-# =====================================================================
-def page_segments():
-    page_head("Dashboard / Segments", "Which audience groups should the brand address?",
-              "Each commenter is placed in one group by what they asked or said. Problems come first, then buying "
-              "questions, then everything else.", [VIEW_TAG, REAL_TAG])
-    seg = T["segments"].set_index("segment")
-    g = cust.groupby("segment").agg(people=("author", "nunique"), comments=("comment_id", "count"),
-                                    hi=("intent", lambda s: (s == "high").mean()))
-    g = g.reindex([s for s in seg.index if s in g.index])
-    left, right = st.columns([3, 2], gap="medium")
-    with left:
-        with card("seg_chart"):
-            card_head("Audience groups", "Number of people in each group")
-            d = g.drop(index=[i for i in ["Off-topic / unclear"] if i in g.index]).iloc[::-1]
-            colors = [BAD if s == "Unhappy customers" else ("#EB6834" if h > 0.5 else (NAVY if s == "Ad & meme crowd" else "#1BAF7A"))
-                      for s, h in zip(d.index, d.hi)]
-            fig = go.Figure(go.Bar(y=d.index, x=d.people, orientation="h", marker_color=colors,
-                                   text=d.people, textposition="outside", cliponaxis=False,
-                                   hovertemplate="%{y}: %{x:,} people<extra></extra>"))
-            fig.update_layout(xaxis_title="People", showlegend=False, margin=dict(t=6),
-                              xaxis_range=[0, d.people.max() * 1.15], yaxis=dict(ticksuffix="  ", showline=False))
-            show(fig, 460)
-            st.caption("Orange: ready-to-buy groups. Red: unhappy customers. Green: fans and supporters. "
-                       "Navy: ad buzz. Off-topic commenters are hidden.")
-    with right:
-        with card("seg_detail"):
-            card_head("Group profile", "What they say and what to do")
-            names = [s for s in g.index if s != "Off-topic / unclear"]
-            pick = st.selectbox("Group", names, key="seg_pick")
-            r = seg.loc[pick]
-            top_b = ", ".join(cust[cust.segment == pick].brand.value_counts().head(3).index)
-            rows = (f'<div class="fact"><span>People</span><b>{int(g.loc[pick, "people"]):,}</b></div>'
-                    f'<div class="fact"><span>Comments</span><b>{int(g.loc[pick, "comments"]):,}</b></div>'
-                    f'<div class="fact"><span>Most common brands</span><b>{esc(top_b)}</b></div>'
-                    f'<div class="fact"><span>Project 2 ad angle</span><b>{esc(r.project2_angle)}</b></div>')
-            html(rows)
-            html(f'<div class="why" style="margin-top:10px"><b>What to do:</b> {esc(r.action)}</div>')
-            ex = cust[(cust.segment == pick) & (cust.need != "other")].drop_duplicates("text")
-            ex = ex.sample(min(4, len(ex)), random_state=2) if len(ex) else ex
-            html("".join(f'<div class="quote">{esc(t)[:180]}</div>' for t in ex.text))
-    with st.expander("All groups in a table"):
-        t = T["segments"][["segment", "commenters", "comments", "high_intent_share", "top_brands", "action", "project2_angle"]]
-        st.dataframe(t.style.format({"high_intent_share": "{:.0%}"}), hide_index=True)
-        st.caption("Table covers all 8 brands. Most people comment once, so a group mostly reflects that one comment.")
-
-
-# =====================================================================
-# UNUSUAL POSTS
-# =====================================================================
-MEASURES = ["views per day", "likes per 1,000 views", "comments per 1,000 views", "share of buying questions",
-            "share of complaints"]
-
-
-def most_common_reason(u):
-    counts = {m: int(u.unusual_because.str.contains(m, regex=False).sum()) for m in MEASURES}
-    best = max(counts, key=counts.get)
-    short = {"views per day": "Views per day", "likes per 1,000 views": "Likes / 1k views",
-             "comments per 1,000 views": "Comments / 1k views", "share of buying questions": "Buying questions",
-             "share of complaints": "Complaints"}
-    return short[best] if counts[best] else "-"
-
-
-def page_unusual():
-    page_head("Dashboard / Unusual posts", "Which marketing patterns are unusual?",
-              "Each video is compared with similar videos (same format and content type). Posts far above or below "
-              "their peers are flagged for a closer look; an Isolation Forest ranks how unusual they are overall.",
-              [VIEW_TAG, REAL_TAG])
-    u = T["unusual_posts"]
-    u = u[u.brand.isin(picked)]
-    kind = segmented("Show", ["Learn from it", "Investigate", "All"], "unusual_kind", "Learn from it")
-    if kind != "All":
-        u = u[u.what_to_do.str.startswith(kind[:5])]
-    kpi_cards([
-        ("Videos checked", f"{int(((vids.views >= 500) & (vids.comments >= 5)).sum()):,}", "", "",
-         "with 500+ views and 5+ comments"),
-        ("Flagged", f"{len(u)}", "", "", "far from similar posts on at least one measure"),
-        ("Also flagged by Isolation Forest", f"{int(u.isolation_flag.sum())}", "", "", "the strongest cases"),
-        ("Most common reason", most_common_reason(u), "", "", "measure most often far from similar posts"),
-    ])
-    left, right = st.columns([3, 2], gap="medium")
-    with left:
-        with card("flags"):
-            card_head("Flagged posts", "Most unusual first; click a title to open the video")
-            rows = []
-            for r in u.head(25).itertuples():
-                tone = "p1" if r.what_to_do.startswith("Inv") else "p3"
-                rows.append(f'<div class="flag"><a href="{r.url}" target="_blank">{esc(r.title)[:110]}</a>'
-                            f'<div class="meta">{r.brand} · {r.post_type} · {r.format} · {r.content_type} · '
-                            f'{int(r.views):,} views · {int(r.comments):,} comments</div>'
-                            f'<div class="why2"><span class="pill {tone}">{esc(r.what_to_do)}</span> {esc(r.unusual_because)}</div></div>')
-            html("".join(rows) if rows else '<div class="why">No flagged posts for this selection.</div>')
-    with right:
-        with card("post_types"):
-            card_head("Post audience types", "Videos grouped by what their commenters talk about (K-Means)")
-            pt = T["post_audience_types"]
-            html("".join(f'<div class="fact"><span>{esc(r.audience_type)}</span><b>{int(r.posts)} posts · '
-                         f'{r.high_intent_share:.0%} buying, {r.praise_share:.0%} praise</b></div>'
-                         for r in pt.sort_values("high_intent_share", ascending=False).itertuples()))
-            x = vids[vids.audience_type.str.startswith("Shopper")]
-            if len(x):
-                top = x.content_type.value_counts()
-                html(f'<div class="why" style="margin-top:10px">Shopper posts are mostly <b>{top.index[0].lower()}</b> '
-                     f'({top.iloc[0]} of {len(x)}){" and <b>" + top.index[1].lower() + "</b>" if len(top) > 1 else ""}.</div>')
-            st.caption("Only videos with 10+ customer comments are typed. Shopper posts are where buying questions "
-                       "pile up, so they need replies fastest.")
-
-
-# =====================================================================
-# LOST SALES (reply gaps)
-# =====================================================================
-def page_gaps():
-    page_head("Dashboard / Reply gaps", "Buying questions nobody answers",
-              "A buying question counts as answered when the video's owner replied in the same thread. On creator "
-              "videos the brand never replies, so those questions only reach the creator.", [VIEW_TAG, REAL_TAG])
-    q = cust[(cust.intent == "high") & (~cust.is_reply)]
-    own, cre = q[q.post_type == "Brand's own post"], q[q.post_type != "Brand's own post"]
-    cities = T["city_mentions"]
-    kpi_cards([
-        ("Buying questions", f"{len(q):,}", "", "", "top-level comments asking to buy"),
-        ("On brand posts", f"{len(own):,}", f"{int(own.answered.sum())} answered", "bad", "brands' own YouTube videos"),
-        ("On creator posts", f"{len(cre):,}", f"{cre.answered.mean():.0%} answered by creator" if len(cre) else "", "neutral",
-         "the brand never sees these"),
-        ("Most-named city", cities.iloc[0].city, f"{int(cities.iloc[0].mentions)} mentions", "neutral", "in all comments"),
-    ])
-    left, right = st.columns([3, 2], gap="medium")
-    with left:
-        with card("gap_chart"):
-            card_head("Where the buying questions are", "By brand and post type")
-            d = q.groupby(["brand", "post_type"]).size().unstack(fill_value=0)
-            d = d.reindex([b for b in BRANDS if b in d.index])
+                fig.add_trace(go.Scattergl(x=d.x, y=d.y, mode="markers", name=gname, marker=dict(size=5, opacity=.6),
+                                           text=d.text.str[:70], hovertemplate="%{text}<extra>" + gname + "</extra>"))
+            fig.update_layout(height=380, paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", font=dict(family=FONT, size=11),
+                              xaxis=dict(visible=False), yaxis=dict(visible=False), margin=dict(t=10, l=0, r=0, b=0),
+                              legend=dict(font=dict(size=10)))
+            st.plotly_chart(fig, theme=None, config={"displaylogo": False})
+            st.caption("Each dot is a comment placed by meaning; similar comments sit together even across languages.")
+    with t3:
+        if BENCH is None:
+            st.info("Benchmark results will appear here after the Spark run.")
+        else:
             fig = go.Figure()
-            for p in d.columns:
-                fig.add_trace(go.Bar(x=d.index, y=d[p], name=p, marker_color=POST_COLORS.get(p, GREY),
-                                     hovertemplate="%{x}: %{y} questions<extra>" + p + "</extra>"))
-            fig.update_layout(barmode="stack", yaxis_title="Buying questions", margin=dict(t=40))
-            show(fig, 360)
-        with card("leads"):
-            card_head("Creators whose viewers ask to buy", "Partnership leads: give them prices, sizes and the order link")
-            ld = T["creator_leads"]
-            ld = ld[ld.brand.isin(picked)].head(12)
-            st.dataframe(ld.rename(columns={"answered_by_creator": "answered by creator"})
-                         .style.format({"answered by creator": "{:.0%}"}), hide_index=True, use_container_width=True)
-    with right:
-        with card("unanswered"):
-            card_head("Unanswered questions", "Newest first; download the full list for the support team")
-            un = q[~q.answered].sort_values("published", ascending=False)
-            html("".join(f'<div class="quote">{esc(r.text)[:200]}<br><span>{r.brand} · {r.need_label} · '
-                         f'{SHORT_POST.get(r.post_type, "")} post · {r.published}</span></div>' for r in un.head(8).itertuples()))
-            st.download_button("Download unanswered questions (CSV)",
-                               un[["brand", "post_type", "channel", "need_label", "text", "published", "url"]].to_csv(index=False),
-                               "unanswered_buying_questions.csv", "text/csv")
-        with card("cities"):
-            card_head("Cities shoppers name", "Mentions in comments")
-            html("".join(f'<div class="fact"><span>{r.city}</span><b>{int(r.mentions)}</b></div>'
-                         for r in cities.head(8).itertuples()))
-    st.caption("The API returns up to 5 replies per thread, so a few owner replies in very long threads may be missed.")
+            for eng, d in BENCH.groupby("engine"):
+                fig.add_trace(go.Scatter(x=d.rows, y=d.seconds, mode="lines+markers", name=eng, line=dict(width=3)))
+            fig.update_layout(height=340, paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", font=dict(family=FONT),
+                              xaxis=dict(type="log", title="Comments"), yaxis=dict(type="log", title="Seconds"),
+                              margin=dict(t=10))
+            st.plotly_chart(fig, theme=None, config={"displaylogo": False})
+            st.dataframe(BENCH, hide_index=True)
+    with t4:
+        st.markdown(
+            f"- **Real data only:** {len(COM):,} public comments on {len(VIDS):,} videos, collected {DATA_DATE} with the official YouTube Data API.\n"
+            "- **Collected:** 853 videos and 8,508 comments; after cleaning, 690 videos and 6,724 comments.\n"
+            "- **Privacy:** commenter names are never stored (each person is an anonymous code); phone numbers, e-mails, "
+            "@handles and order numbers are removed from the text.\n"
+            "- **Every video keeps its link and collection date** (Table A); every comment keeps its video, language, topic and "
+            "purchase intent (Table B).")
+        ta = VIDS[["video_id", "brand", "platform", "content_type", "format", "post_type", "title", "views", "likes", "comments",
+                   "published", "url", "collected_on"]]
+        tb = COM[["video_id", "comment_id", "brand", "text", "lang", "need_label", "intent", "published", "collected_on"]]
+        c1, c2 = st.columns(2)
+        c1.download_button("Table A: posts (CSV)", ta.to_csv(index=False), "table_a_posts.csv", "text/csv", use_container_width=True)
+        c2.download_button("Table B: comments (CSV)", tb.to_csv(index=False), "table_b_comments.csv", "text/csv", use_container_width=True)
+    with t5:
+        st.markdown(
+            "- **YouTube only.** Instagram, TikTok and Facebook comments can't be collected within their terms; the data has a "
+            "platform column so Instagram post stats can be added later.\n"
+            "- **No shares.** YouTube's API doesn't report them.\n"
+            "- **Most comments are on creator videos,** so they show what shoppers ask, not how a brand's own page performs.\n"
+            "- **Brand videos with huge views and few comments are probably paid promotion.**\n"
+            "- **Roman Urdu spelling varies,** so some comments are missed or mis-tagged; about a third stay unlabelled.\n"
+            "- **The missed-sales figure is an estimate** from the assumptions in the sidebar, not a measured number.\n"
+            "- **Small groups:** size questions (38) and complaints (73) are small samples.\n"
+            "- **Patterns, not proof:** 'prices shown → fewer price questions' is a correlation worth A/B testing.\n"
+            "- **The API returns up to 5 replies per thread,** so a few brand replies may be missed.")
+        st.markdown(f"Series: [Project 1 sentiment]({P1_URL}) · [Project 2 ad budget]({P2_URL})")
 
 
-# =====================================================================
-# ACTION PLAN
-# =====================================================================
-def brief_text(acts):
-    lines = [f"AUDIENCE ACTION PLAN | {view}", "Pakistan Social Audience & Campaign Intelligence Engine (Project 3)",
-             f"Based on {len(cust):,} real YouTube comments on {vids.video_id.nunique():,} videos.", ""]
-    for area, g in acts.groupby("area", sort=False):
-        lines.append(f"=== {area.upper()} ===")
-        for r in g.itertuples():
-            lines += [f"[Priority {r.priority}] {r.brand}: {r.action}", f"   Evidence: {r.evidence}"]
-        lines.append("")
-    lines.append(f"Dashboard and code: {REPO_URL}")
-    return "\n".join(lines)
-
-
-def page_actions():
-    page_head("Dashboard / Action plan", "What should the marketing team do next?",
-              "Every action comes from a rule applied to the data, and shows the number that triggered it.",
-              [VIEW_TAG, REAL_TAG])
-    a = T["action_plan"]
-    a = a[(a.brand == "All brands") | a.brand.apply(lambda b: any(p in str(b) for p in picked))]
-    areas = ["All areas"] + sorted(a.area.unique())
-    area = segmented("Area", areas, "act_area", "All areas")
-    if area != "All areas":
-        a = a[a.area == area]
-    with card("actions"):
-        card_head("Actions", "Priority 1 first")
-        html("".join(f'<div class="act"><div class="top"><span class="pill p{r.priority}">Priority {r.priority}</span>'
-                     f'<span class="pill">{esc(r.area)}</span><span class="pill">{esc(r.brand)}</span></div>'
-                     f'<div class="what">{esc(r.action)}</div><div class="ev">Evidence: {esc(r.evidence)}</div></div>'
-                     for r in a.itertuples()))
-    c1, c2 = st.columns(2)
-    with c1:
-        st.download_button("Download the action plan (TXT)", brief_text(a), "audience_action_plan.txt", "text/plain",
-                           use_container_width=True)
-    with c2:
-        st.download_button("Download the action plan (CSV)", a.to_csv(index=False), "audience_action_plan.csv",
-                           "text/csv", use_container_width=True)
-    with card("p2link"):
-        card_head("Take it into Project 2", "Turn audience groups into ads")
-        html('<div class="why">Project 2\'s Ad copy studio writes ads around angles like <b>price</b>, <b>size</b>, '
-             '<b>delivery</b> and <b>quality</b>. Use the largest buying group for each brand (Segments page) to pick '
-             'the lead angle, and use the city list (Reply gaps page) to target the ads.</div>')
-        st.markdown(f"[Open the Project 2 dashboard]({P2_APP})")
-
-
-# =====================================================================
-# REPLY ASSISTANT
-# =====================================================================
-def page_replies():
-    page_head("Dashboard / Reply assistant", "Ready-to-paste replies",
-              "Sample replies for each kind of comment, in English and Roman Urdu. Fill in the link, price or "
-              "sale date, then copy.", [VIEW_TAG])
-    keys = [k for k in REPLIES]
-    labels = {k: NEED_LABEL[k] for k in keys}
-    c1, c2 = st.columns([2, 3], gap="medium")
-    with c1:
-        with card("reply_in"):
-            card_head("Settings")
-            need = st.selectbox("Comment type", keys, format_func=lambda k: labels[k], key="reply_need")
-            brand = st.selectbox("Brand", BRANDS, key="reply_brand")
-            lang = segmented("Language", ["English", "Roman Urdu"], "reply_lang", "Roman Urdu")
-            link = st.text_input("Shop link", f"{brand.lower().replace(' ', '')}.com.pk", key="reply_link")
-            price = st.text_input("Price (Rs.)", "4,999", key="reply_price")
-            end = st.text_input("Sale ends", "30 November", key="reply_end")
-    with c2:
-        with card("reply_out"):
-            card_head(f"Reply: {labels[need]}", f"{brand}, {lang}")
-            text = REPLIES[need]["en" if lang == "English" else "ru"].format(
-                brand=brand, link=link, price=price, end_date=end)
-            st.code(text, language=None)
-            card_head("Real comments this reply fits", "Unanswered, for the chosen brand")
-            ex = cust[(cust.need == need) & (cust.brand == brand) & (~cust.answered)].drop_duplicates("text")
-            ex = ex.sample(min(5, len(ex)), random_state=3) if len(ex) else ex
-            html("".join(f'<div class="quote">{esc(t)[:200]}</div>' for t in ex.text) or
-                 '<div class="why">No unanswered comments of this type for this brand.</div>')
-    st.caption("Sample wording written for a class project, not the brands' real customer-service scripts.")
-
-
-# =====================================================================
-# BIG DATA BENCHMARK
-# =====================================================================
-def page_bigdata():
-    page_head("Dashboard / Big Data", "Does the engine scale?",
-              "The comment pipeline (labelling needs and rolling them up by brand, video and audience group) run "
-              "on growing copies of the data, in pandas and in Apache Spark.", [REAL_TAG])
-    if BENCH is None:
-        st.info("Benchmark results are not added yet.")
-        return
-    with card("bench"):
-        card_head("Run time by data size", "Lower is better; log scales")
-        fig = go.Figure()
-        for eng, d in BENCH.groupby("engine"):
-            fig.add_trace(go.Scatter(x=d.rows, y=d.seconds, mode="lines+markers", name=eng,
-                                     line=dict(color={"Pandas": "#2A78D6", "Spark": "#EB6834"}.get(eng, GREY), width=3),
-                                     hovertemplate=eng + ": %{x:,} rows in %{y:.1f} s<extra></extra>"))
-        fig.update_layout(xaxis=dict(type="log", title="Comments"), yaxis=dict(type="log", title="Seconds"))
-        show(fig, 380)
-        st.dataframe(BENCH, hide_index=True)
-        if "note" in BENCH:
-            st.caption(str(BENCH.note.dropna().iloc[0]) if BENCH.note.notna().any() else "")
-
-
-# =====================================================================
-# DATA & LIMITATIONS
-# =====================================================================
-def page_about():
-    page_head("Dashboard / About", "Data, method and limitations",
-              "Where the data came from, how it was cleaned and what it can't tell you.", [REAL_TAG])
-    c1, c2 = st.columns(2, gap="medium")
-    with c1:
-        with card("funnel"):
-            card_head("From collection to analysis", "Every step is in the repo")
-            steps = [("Videos found by search and brand channels", "2,561"),
-                     ("Kept: title names the brand, not from India or abroad, has comments", "853 videos"),
-                     ("Comments downloaded (official YouTube Data API)", "8,508"),
-                     ("Removed: Bata (channel is Bata India), foreign videos, empty or foreign-language comments", "−1,741"),
-                     ("Removed: 3 international sneaker videos (e.g. 'Air Max Metro')", f"−{6767 - len(com_all):,}"),
-                     ("Comments analysed", f"{len(com_all):,}"),
-                     ("…of which customer comments (not owner replies)", f"{(~com_all.owner_reply).sum():,}")]
-            html("".join(f'<div class="fact"><span>{a}</span><b>{b}</b></div>' for a, b in steps))
-            st.caption("Commenter names are never stored; each person is an anonymous code. Each video keeps its URL "
-                       "and collection date.")
-        with card("tables"):
-            card_head("The brief's tables", "Table A (posts) and Table B (comments)")
-            ta = vids_all[["video_id", "brand", "platform", "content_type", "format", "post_type", "title", "views", "likes",
-                           "comments", "age_days", "published", "url", "collected_on"]].rename(
-                columns={"video_id": "post_id", "comments": "comments_count", "age_days": "days_since_post"})
-            ta["shares"] = "not available (YouTube API)"
-            tb = com_all[["video_id", "comment_id", "brand", "text", "lang", "need_label", "intent", "published", "collected_on"]].copy()
-            tb["sentiment"] = np.select([tb.need_label.isin(["Complaint / problem"]),
-                                         tb.need_label.isin(["Product praise / wants it", "General praise / blessing",
-                                                             "Praise for the video", "Quality / comfort"])],
-                                        ["Negative", "Positive"], "Neutral")
-            tb = tb.rename(columns={"video_id": "post_id", "text": "comment_text", "lang": "language_type",
-                                    "need_label": "topic", "intent": "purchase_intent"})
-            st.download_button("Download Table A: posts (CSV)", ta.to_csv(index=False), "table_a_posts.csv", "text/csv",
-                               use_container_width=True)
-            st.download_button("Download Table B: comments (CSV)", tb.to_csv(index=False), "table_b_comments.csv",
-                               "text/csv", use_container_width=True)
-            st.caption("Sentiment in Table B is a simple rule from the topic (complaint = negative, praise = positive). "
-                       "Project 1 covers proper sentiment analysis.")
-    with c2:
-        with card("limits"):
-            card_head("Limitations", "Read these before acting on the numbers")
-            st.markdown(
-                "- **YouTube only.** Instagram, TikTok and Facebook comments can't be collected within their terms. "
-                "The tables already have a platform column, so Instagram post data can be added later.\n"
-                "- **No shares.** The YouTube API doesn't report shares.\n"
-                "- **Creator videos aren't brand posts.** Most comments come from creators' sale vlogs and reviews, "
-                "so they show what shoppers ask, not how the brand's own page performs.\n"
-                "- **Paid views.** Brand videos with huge views and almost no comments are probably promoted; views "
-                "there measure ad spend more than interest.\n"
-                "- **Roman Urdu is messy.** Spellings vary, so the word lists miss some comments and mislabel a few. "
-                "About a third of comments are short or off-topic and stay unlabelled.\n"
-                "- **Small groups.** Size questions (38 comments) and complaints (about 70) are small samples.\n"
-                "- **Correlation, not cause.** 'Prices in the title → fewer price questions' is a pattern worth testing, "
-                "not proof.\n"
-                "- **Replies.** Only up to 5 replies per thread come back from the API, so a few answers may be missed.\n"
-                "- **Brands chosen by us.** Bata was dropped because its YouTube channel is Bata India.")
-        with card("links"):
-            card_head("Links")
-            st.markdown(f"- [GitHub repo]({REPO_URL})\n- [Project 1: sentiment analysis]({P1_URL})\n"
-                        f"- [Project 2: ad budget optimizer]({P2_URL})")
-
-
-# ---------------- NAVIGATION ----------------
-pages = [
-    st.Page(page_overview, title="Overview", icon=":material/space_dashboard:", url_path="overview", default=True),
-    st.Page(page_content, title="Content that works", icon=":material/smart_display:", url_path="content"),
-    st.Page(page_wants, title="What the audience wants", icon=":material/forum:", url_path="audience"),
-    st.Page(page_segments, title="Audience groups", icon=":material/groups:", url_path="segments"),
-    st.Page(page_unusual, title="Unusual posts", icon=":material/troubleshoot:", url_path="unusual"),
-    st.Page(page_gaps, title="Reply gaps", icon=":material/mark_chat_unread:", url_path="reply-gaps"),
-    st.Page(page_actions, title="Action plan", icon=":material/checklist:", url_path="action-plan"),
-    st.Page(page_replies, title="Reply assistant", icon=":material/quickreply:", url_path="replies"),
-    st.Page(page_bigdata, title="Big Data benchmark", icon=":material/storage:", url_path="big-data"),
-    st.Page(page_about, title="Data & limitations", icon=":material/info:", url_path="about"),
-]
-st.navigation(pages).run()
+# ---------------- navigation ----------------
+PAGES = {
+    "today": st.Page(page_today, title="Today", icon=":material/space_dashboard:", url_path="today", default=True),
+    "inbox": st.Page(page_inbox, title="Leads inbox", icon=":material/inbox:", url_path="inbox"),
+    "customers": st.Page(page_customers, title="Your customers", icon=":material/groups:", url_path="customers"),
+    "content": st.Page(page_content, title="Post this, not that", icon=":material/smart_display:", url_path="content"),
+    "competitors": st.Page(page_competitors, title="Competitors", icon=":material/leaderboard:", url_path="competitors"),
+    "campaigns": st.Page(page_campaigns, title="Campaign ideas", icon=":material/rocket_launch:", url_path="campaigns"),
+    "report": st.Page(page_report, title="Client report", icon=":material/description:", url_path="report"),
+    "how": st.Page(page_how, title="How it works", icon=":material/info:", url_path="how-it-works"),
+}
+st.navigation({"Workspace": [PAGES[k] for k in ["today", "inbox", "customers", "content", "competitors", "campaigns"]],
+               "Share": [PAGES["report"]], "About": [PAGES["how"]]}).run()

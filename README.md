@@ -1,12 +1,25 @@
-# Pakistan Social Audience & Campaign Intelligence Engine: footwear brands
+# Joota Pulse: audience intelligence for Pakistani footwear brands
 
-**Project 3, Big Data Analytics (UMT Lahore)** · Usama Hanif
+**Project 3, Big Data Analytics (UMT Lahore)** · Usama Hanif · *Pakistan Social Audience & Campaign Intelligence Engine*
 
-An engine that reads **6,724 real YouTube comments** on **690 videos** about **8 Pakistani footwear brands**, groups them into audience needs and audience groups, flags unusual posts and turns the findings into a marketing action plan, with replies the team can paste.
+A marketing web app that reads **6,724 real YouTube comments** on **690 videos** about **8 Pakistani footwear brands**, groups them into audience needs and audience groups, flags unusual posts and turns the findings into a marketing action plan, with replies the team can paste.
 
 Borjan, Servis and Ndure are the core brands, the same three as in [Project 1](https://github.com/usamahanif349/pk-footwear-sentiment-analysis) and [Project 2](https://github.com/usamahanif349/pk-footwear-budget-optimizer). Stylo, Metro, Hush Puppies, Insignia and ECS widen the audience.
 
 🔗 **Live dashboard:** *(link added after deployment)*
+
+## What a marketing team gets
+
+| Page | What it does |
+|---|---|
+| **Today** | Missed sales estimate, buying questions, reply rate, hottest city, and the 3 things to do today |
+| **Leads inbox** | Every unanswered buying question in one list; click one and get a ready reply in Roman Urdu or English |
+| **Your customers** | 11 customer groups (Where-can-I-buy askers, Price checkers, Deal hunters…) with what to do for each |
+| **Post this, not that** | Content that starts conversations vs content that doesn't, plus a creator leaderboard |
+| **Competitors** | Brand scorecard: buying questions, top ask, replies, complaints, ad buzz for all 8 brands |
+| **Campaign ideas** | Ready-to-run campaigns, each with the number behind it and ad copy in English and Roman Urdu |
+| **Client report** | One-click 1-page PDF for a brand |
+| **How it works** | Method, accuracy checks, Big Data benchmark, data, privacy and limitations |
 
 ## The headline
 
@@ -38,7 +51,7 @@ search + brand channels  ──►  853 videos, 8,508 comments  ──►  clean
                  K-Means "post audience types"
  3. segments.py  audience groups per commenter, reply gaps, creator leads, city mentions,
                  rule-based action plan with the evidence behind each action
- 4. app.py       Streamlit dashboard (10 pages) with a reply assistant
+ 4. app.py       Joota Pulse web app (8 pages) + one-page PDF client report
 ```
 
 **Method checks**

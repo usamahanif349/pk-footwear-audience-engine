@@ -3,3 +3,4 @@ numpy
 scikit-learn
 plotly
 streamlit>=1.40
+reportlab
