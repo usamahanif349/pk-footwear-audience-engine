@@ -6,7 +6,7 @@ A marketing web app that reads **6,724 real YouTube comments** on **690 videos**
 
 Borjan, Servis and Ndure are the core brands, the same three as in [Project 1](https://github.com/usamahanif349/pk-footwear-sentiment-analysis) and [Project 2](https://github.com/usamahanif349/pk-footwear-budget-optimizer). Stylo, Metro, Hush Puppies, Insignia and ECS widen the audience.
 
-🔗 **Live dashboard:** *(link added after deployment)*
+🔗 **Joota Pulse web app:** https://usamahanif349.github.io/joota-pulse/ · **Analyst version (Streamlit):** https://pk-footwear-audience-engine.streamlit.app/
 
 ## What a marketing team gets
 
@@ -51,7 +51,8 @@ search + brand channels  ──►  853 videos, 8,508 comments  ──►  clean
                  K-Means "post audience types"
  3. segments.py  audience groups per commenter, reply gaps, creator leads, city mentions,
                  rule-based action plan with the evidence behind each action
- 4. app.py       Joota Pulse web app (8 pages) + one-page PDF client report
+ 4. app.py       analyst version (Streamlit) + one-page PDF client report
+ 5. web/         Joota Pulse web app (HTML/CSS/JS); src/web/export.py writes web/data.json
 ```
 
 **Method checks**

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Joota Pulse · Audience intelligence for Pakistani footwear brands</title>
+<meta name="description" content="Find the buyers your brand is ignoring. Joota Pulse reads real YouTube comments about Pakistani footwear brands and turns them into leads, customer groups and ready-to-run campaigns.">
+<meta property="og:title" content="Joota Pulse: the buyers your brand is ignoring">
+<meta property="og:description" content="Real comments, real buyers, ready replies. Audience intelligence for Pakistani footwear brands.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%237B6CFF'/%3E%3Cpath d='M12 36h11l5-15 8 26 6-16h10' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <a class="logo" href="#today" aria-label="Joota Pulse home">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="url(#lg)"/><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B7BFF"/><stop offset="1" stop-color="#FF7A59"/></linearGradient></defs><path d="M12 36h11l5-15 8 26 6-16h10" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Joota<b>Pulse</b></span>
+    </a>
+    <nav id="nav" aria-label="Main"></nav>
+    <div class="side-foot">
+      <div class="src"><span class="live-dot"></span>Real YouTube data</div>
+      <div class="src-sub" id="src-sub"></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="ws">
+        <label for="ws-select" class="sr">Workspace</label>
+        <span class="ws-av" id="ws-av">A</span>
+        <select id="ws-select"></select>
+      </div>
+      <div class="top-actions">
+        <button class="btn ghost" id="assume-btn" type="button" aria-expanded="false">Assumptions</button>
+        <a class="btn primary" href="#report">Client report</a>
+      </div>
+      <div class="assume" id="assume" hidden>
+        <label>Average pair price (Rs)<input type="number" id="price" min="500" max="30000" step="500" value="4500"></label>
+        <label>Askers who'd buy if answered (%)<input type="number" id="conv" min="1" max="50" step="1" value="10"></label>
+        <p>Used for the missed-sales estimate only.</p>
+      </div>
+    </header>
+    <main id="view" tabindex="-1"></main>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
