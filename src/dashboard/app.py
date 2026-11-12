@@ -741,6 +741,9 @@ def page_how():
                               margin=dict(t=10))
             st.plotly_chart(fig, theme=None, config={"displaylogo": False})
             st.dataframe(BENCH, hide_index=True)
+            st.caption("On a free 2-core Colab machine Spark was about 2× slower than pandas at every size, and both grew in a "
+                       "straight line with the data; labels matched 100%. Spark's start-up and coordination cost only pays off "
+                       "on a cluster or when the data no longer fits in one computer's memory.")
     with t4:
         st.markdown(
             f"- **Real data only:** {len(COM):,} public comments on {len(VIDS):,} videos, collected {DATA_DATE} with the official YouTube Data API.\n"

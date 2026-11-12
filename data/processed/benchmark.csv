@@ -1,0 +1,9 @@
+engine,rows,seconds,labels_agree_with_pandas,machine
+Pandas,6767,1.32,,"Google Colab, 2 CPU cores, Spark local mode"
+Spark,6767,13.61,1.0,"Google Colab, 2 CPU cores, Spark local mode"
+Pandas,100000,11.69,,"Google Colab, 2 CPU cores, Spark local mode"
+Spark,100000,25.61,1.0,"Google Colab, 2 CPU cores, Spark local mode"
+Pandas,1000000,114.77,,"Google Colab, 2 CPU cores, Spark local mode"
+Spark,1000000,225.79,1.0,"Google Colab, 2 CPU cores, Spark local mode"
+Pandas,3000000,346.98,,"Google Colab, 2 CPU cores, Spark local mode"
+Spark,3000000,674.67,1.0,"Google Colab, 2 CPU cores, Spark local mode"

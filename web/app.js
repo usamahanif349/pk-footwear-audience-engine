@@ -293,7 +293,7 @@
           <div class="kv"><span>Cluster–need match: word-count baseline</span><b>${m.nmi_tfidf_vs_needs.toFixed(2)}</b></div>
           <p class="note" style="margin-top:10px">The AI embeddings group comments by need better than plain word counts. Silhouette is low (about 0.14) because short comments overlap.</p></section>
         <section class="panel s7"><div class="panel-h"><h2>Comments mapped by meaning</h2><span>1,500 sample comments</span></div><div class="chart-box"><canvas id="map"></canvas></div></section>
-        <section class="panel s5"><div class="panel-h"><h2>Big Data benchmark</h2><span>pandas vs Apache Spark</span></div>${h.benchmark ? '<div class="chart-box" style="height:300px"><canvas id="bench"></canvas></div>' : '<p class="note">Spark benchmark results will appear here after the Colab run.</p>'}</section>
+        <section class="panel s5"><div class="panel-h"><h2>Big Data benchmark</h2><span>pandas vs Apache Spark</span></div>${h.benchmark ? `<div class="chart-box" style="height:260px"><canvas id="bench"></canvas></div><p class="note" style="margin-top:10px">${benchNote(h.benchmark)}</p>` : '<p class="note">Spark benchmark results will appear here after the Colab run.</p>'}</section>
         <section class="panel s12"><div class="panel-h"><h2>Limitations</h2></div><ul class="bul">
           <li><b>YouTube only.</b> Instagram, TikTok and Facebook comments can't be collected within their terms.</li>
           <li><b>Missed sales is an estimate</b> from the assumptions (top bar), not a measured figure.</li>
@@ -304,6 +304,14 @@
           <li><b>Small groups:</b> size questions (38) and complaints (73) are small samples.</li></ul>
           <div class="row-btns"><a class="btn ghost" href="${D.links.repo}" target="_blank" rel="noopener">Code on GitHub</a><a class="btn ghost" href="${D.links.streamlit}" target="_blank" rel="noopener">Analyst version (Streamlit)</a><a class="btn ghost" href="${D.links.p1}" target="_blank" rel="noopener">Project 1</a><a class="btn ghost" href="${D.links.p2}" target="_blank" rel="noopener">Project 2</a></div></section>
       </div></div>`;
+  }
+  function benchNote(b) {
+    const big = Math.max(...b.map(r => r.rows));
+    const pd = b.find(r => r.engine === "Pandas" && r.rows === big), sp = b.find(r => r.engine === "Spark" && r.rows === big);
+    const agree = b.filter(r => r.engine === "Spark").every(r => Number(r.labels_agree_with_pandas) >= 0.9999);
+    return `At ${fmt(big)} comments: pandas ${Math.round(pd.seconds)} s, Spark ${Math.round(sp.seconds)} s on a free 2-core Colab machine. `
+      + `Both grow in a straight line with the data${agree ? " and give identical labels" : ""}. On one small machine Spark's start-up and coordination cost makes it slower; `
+      + `it pays off on a cluster or once the data no longer fits in one computer's memory.`;
   }
   function drawHow() {
     if (!window.Chart) return;

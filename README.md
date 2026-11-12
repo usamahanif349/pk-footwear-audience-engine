@@ -60,7 +60,16 @@ search + brand channels  ──►  853 videos, 8,508 comments  ──►  clean
 - Embedding clusters match the needs better than TF-IDF clusters: NMI **0.43 vs 0.34**.
 - Silhouette is low (about 0.14) because short comments overlap; clusters are a guide, not hard boundaries.
 
-**Big Data benchmark:** the labelling and roll-up pipeline in pandas vs Apache Spark on up to 3 million comments (`src/bigdata/benchmark.py`, run in Colab).
+**Big Data benchmark** (`src/bigdata/benchmark.py`, free 2-core Google Colab): the labelling and roll-up pipeline in pandas vs Apache Spark.
+
+| Comments | pandas | Spark | Labels match |
+|---|---|---|---|
+| 6,767 | 1.3 s | 13.6 s | 100% |
+| 100,000 | 11.7 s | 25.6 s | 100% |
+| 1,000,000 | 115 s | 226 s | 100% |
+| 3,000,000 | 347 s | 675 s | 100% |
+
+Both scale in a straight line. On one small machine Spark is about 2× slower because of its start-up and coordination cost; it pays off on a cluster or when the data outgrows one machine's memory.
 
 ## Data
 
