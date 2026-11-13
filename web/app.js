@@ -62,6 +62,16 @@
     const mx = Math.max(...rows.map(r => r.n), 1);
     return rows.map(r => `<div class="hbar"><div class="row">${esc(r.label)}<span>${fmt(r.n)}</span></div><div class="track"><div class="fill ${r.hot ? "hot" : ""}" style="width:${(r.n / mx * 100).toFixed(0)}%"></div></div></div>`).join("");
   };
+  const ago = iso => {
+    const days = Math.round((Date.now() - new Date(iso + "T00:00:00").getTime()) / 864e5);
+    return days <= 0 ? "today" : days === 1 ? "yesterday" : `${days} days ago`;
+  };
+  const sparkline = (pts) => {
+    if (pts.length < 2) return "";
+    const w = 160, h = 40, mx = Math.max(...pts), mn = Math.min(...pts), r = mx - mn || 1;
+    const xy = pts.map((v, i) => `${(i / (pts.length - 1) * w).toFixed(1)},${(h - 4 - (v - mn) / r * (h - 8)).toFixed(1)}`).join(" ");
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${xy}" fill="none" stroke="#FF8A5B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  };
   const tagFor = ask => ask === "Complaint" ? "bad" : "hot";
 
   /* ---------------- nav + shell ---------------- */
@@ -85,10 +95,11 @@
     return `<div class="fade">
     <div class="grid">
       <section class="hero s8">
-        <span class="kicker">● Sales slipping away right now</span>
+        <span class="kicker">● ${w.new_buyers ? `${fmt(w.new_buyers)} new buyers since the last update` : "Sales slipping away right now"}</span>
         <div class="money" id="money" data-target="${w.waiting}">${money(w.waiting)}</div>
         <div class="line"><b>${fmt(w.waiting)} buyers</b> asked about price, stock or delivery. Nobody answered.</div>
         <div class="sub">${esc(w.label)} · ${fmt(w.comments)} real YouTube comments · estimate at Rs ${fmt(S.price)} a pair, ${S.conv}% buying</div>
+        ${trendLine(w)}
         <div class="cta"><a class="btn coral" href="#inbox">Answer them now</a><a class="btn ghost" href="#report">Get the client report</a></div>
         <div class="ticker" aria-label="Recent unanswered buyer comments"><div class="track">${bubbles}${bubbles}</div></div>
         <svg class="pulse" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="pg" x1="0" x2="1"><stop offset="0" stop-color="#8B7BFF" stop-opacity="0"/><stop offset=".5" stop-color="#8B7BFF"/><stop offset="1" stop-color="#FF7A59"/></linearGradient></defs><path d="M0 80 H260 L290 80 L310 40 L335 110 L360 20 L385 95 L405 80 H640 L665 80 L685 55 L705 100 L725 70 H1000"/></svg>
@@ -127,6 +138,12 @@
     </div></div>`;
   }
 
+  function trendLine(w) {
+    const hist = (D.history || []).map(h => h[S.ws]).filter(Boolean);
+    if (hist.length < 2) return `<div class="sub" style="margin-top:4px">Live data · updated ${ago(D.updated)} · refreshes every week</div>`;
+    const a = hist[hist.length - 2].waiting, b = hist[hist.length - 1].waiting, d = b - a;
+    return `<div class="trend">${sparkline(hist.map(h => h.waiting))}<span>Waiting buyers ${d >= 0 ? "up" : "down"} <b>${Math.abs(d)}</b> since the last update · updated ${ago(D.updated)}</span></div>`;
+  }
   function countUp() {
     const el = $("#money"); if (!el || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const target = Number(el.dataset.target), t0 = performance.now(), dur = 1100;
@@ -137,13 +154,14 @@
   /* ---------------- INBOX ---------------- */
   function inbox() {
     const all = inboxItems();
-    const kinds = ["All", "Where to buy", "Price", "Order & delivery", "Size", "Contact", "Complaint"];
-    const count = k => k === "All" ? all.length : all.filter(m => m.ask === k).length;
-    let items = all.filter(m => (S.kind === "All" || m.ask === S.kind) && (S.src === "Everywhere" || (S.src === "Your videos") === m.own)
+    const hasNew = all.some(m => m.new);
+    const kinds = ["All"].concat(hasNew ? ["New"] : [], ["Where to buy", "Price", "Order & delivery", "Size", "Contact", "Complaint"]);
+    const count = k => k === "All" ? all.length : k === "New" ? all.filter(m => m.new).length : all.filter(m => m.ask === k).length;
+    let items = all.filter(m => (S.kind === "All" || (S.kind === "New" ? m.new : m.ask === S.kind)) && (S.src === "Everywhere" || (S.src === "Your videos") === m.own)
       && (!S.q || m.text.toLowerCase().includes(S.q.toLowerCase())));
     if (!items.find(m => m.id === S.sel)) S.sel = items.length ? items[0].id : null;
     const m = items.find(x => x.id === S.sel);
-    const rows = items.slice(0, 300).map(x => `<button class="irow ${x.id === S.sel ? "on" : ""}" data-id="${x.id}" type="button">${avatar(x.brand)}<div><div class="top"><b>${esc(x.brand)}</b><span>${esc(x.date)}</span></div><div class="t">${esc(x.text)}</div><div class="tags"><span class="tag ${tagFor(x.ask)}">${esc(x.ask)}</span><span class="tag grey">${esc(x.where)}</span></div></div></button>`).join("");
+    const rows = items.slice(0, 300).map(x => `<button class="irow ${x.id === S.sel ? "on" : ""}" data-id="${x.id}" type="button">${avatar(x.brand)}<div><div class="top"><b>${esc(x.brand)}</b><span>${esc(x.date)}</span></div><div class="t">${esc(x.text)}</div><div class="tags">${x.new ? '<span class="tag new">New</span>' : ""}<span class="tag ${tagFor(x.ask)}">${esc(x.ask)}</span><span class="tag grey">${esc(x.where)}</span></div></div></button>`).join("");
     return `<div class="fade">${header("Leads inbox", `${fmt(W().waiting)} buyers asked and are still waiting. Pick one, copy the reply, paste it on YouTube.`,
       `<div class="seg" role="group" aria-label="Source">${["Everywhere", "Your videos", "Creator videos"].map(s => `<button type="button" data-src="${s}" class="${S.src === s ? "on" : ""}">${s}</button>`).join("")}</div>`)}
       <div class="chips" role="group" aria-label="Type">${kinds.map(k => `<button type="button" class="chip ${S.kind === k ? "on" : ""}" data-kind="${k}">${k}<em>${count(k)}</em></button>`).join("")}</div>
@@ -277,8 +295,8 @@
     return `<div class="fade">${header("How it works", "The engine behind the app: real data, a multilingual AI model and checks on every step.")}
       <div class="grid">
         <section class="panel s6"><div class="panel-h"><h2>The pipeline</h2></div><div class="steps">
-          <div class="step"><div><b>Collect</b><span>Official YouTube Data API: 853 videos about 8 Pakistani footwear brands (their channels plus creators' sale vlogs and reviews), 8,508 comments.</span></div></div>
-          <div class="step"><div><b>Clean</b><span>Keep videos that name the brand; drop Indian and foreign videos (Bata's channel is Bata India, so Bata is out), foreign-language and empty comments. ${fmt(h.comments)} comments remain.</span></div></div>
+          <div class="step"><div><b>Collect</b><span>Official YouTube Data API, every week: brand channels plus creators' sale vlogs and reviews. Latest run (${esc(D.date)}): ${fmt(D.pipeline.videos_kept)} videos and ${fmt(D.pipeline.comments_raw)} comments collected.</span></div></div>
+          <div class="step"><div><b>Clean</b><span>Keep videos that name the brand; drop Indian and foreign videos (Bata's channel is Bata India, so Bata is out), foreign-language and empty comments. ${fmt(h.comments)} comments on ${fmt(h.videos)} videos about ${D.brands.length} brands remain.</span></div></div>
           <div class="step"><div><b>Protect</b><span>Commenter names never stored; phone numbers, e-mails, @handles and order numbers removed.</span></div></div>
           <div class="step"><div><b>Understand</b><span>Word lists in English, Roman Urdu and Urdu tag clear needs; a multilingual AI embedding model tags similar comments the lists miss.</span></div></div>
           <div class="step"><div><b>Group</b><span>K-Means finds topic clusters; every person is placed in one customer group.</span></div></div>
@@ -299,9 +317,9 @@
           <li><b>Missed sales is an estimate</b> from the assumptions (top bar), not a measured figure.</li>
           <li><b>Most comments are on creator videos,</b> so they show what shoppers ask, not how a brand's own page performs.</li>
           <li><b>Brand videos with huge views and few comments are likely paid promotion.</b> No share counts from the API.</li>
-          <li><b>Roman Urdu spelling varies,</b> so some comments are missed or mis-tagged; about a third stay unlabelled.</li>
+          <li><b>Roman Urdu spelling varies,</b> so some comments are missed or mis-tagged; ${pct(D.limits.unlabelled)} stay unlabelled.</li>
           <li><b>Patterns, not proof:</b> "prices shown → fewer price questions" is a correlation worth A/B testing.</li>
-          <li><b>Small groups:</b> size questions (38) and complaints (73) are small samples.</li></ul>
+          <li><b>Small groups:</b> size questions (${fmt(D.limits.size_q)}) and complaints (${fmt(D.limits.complaints)}) are small samples.</li></ul>
           <div class="row-btns"><a class="btn ghost" href="${D.links.repo}" target="_blank" rel="noopener">Code on GitHub</a><a class="btn ghost" href="${D.links.streamlit}" target="_blank" rel="noopener">Analyst version (Streamlit)</a><a class="btn ghost" href="${D.links.p1}" target="_blank" rel="noopener">Project 1</a><a class="btn ghost" href="${D.links.p2}" target="_blank" rel="noopener">Project 2</a></div></section>
       </div></div>`;
   }
@@ -359,7 +377,7 @@
     sel.innerHTML = `<option value="all">All brands (agency view)</option><option value="core">Core brands: Borjan, Servis, Ndure</option>` + D.brands.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join("");
     sel.value = S.ws;
     sel.onchange = () => { S.ws = sel.value; S.sel = null; S.seg = null; store.set("ws", S.ws); render(); };
-    $("#src-sub").textContent = `${fmt(D.how.comments)} comments · ${D.date}`;
+    $("#src-sub").textContent = `${fmt(D.how.comments)} comments · updated ${ago(D.updated)}`;
     const box = $("#assume"), btn = $("#assume-btn");
     btn.onclick = () => { box.hidden = !box.hidden; btn.setAttribute("aria-expanded", String(!box.hidden)); };
     $("#price").value = S.price; $("#conv").value = S.conv;

@@ -150,6 +150,10 @@ button, input, select { font: inherit; color: inherit; }
 .tag.warm { background: rgba(255, 199, 90, .14); color: #FFD889; }
 .tag.cool { background: rgba(139, 123, 255, .18); color: #C3BAFF; }
 .tag.ok { background: rgba(61, 217, 164, .14); color: #87F0CA; }
+.tag.new { background: linear-gradient(135deg, #FF7A59, #FFB07A); color: #1A0F08; }
+.trend { display: flex; align-items: center; gap: 12px; margin-top: 12px; color: #C9C4EE; font-size: .9rem; }
+.trend b { color: #fff; }
+.spark { width: 120px; height: 32px; flex: none; }
 .tag.grey { background: rgba(255, 255, 255, .07); color: var(--muted); }
 
 .hbar { margin: 12px 0; }

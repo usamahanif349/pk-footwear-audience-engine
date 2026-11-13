@@ -767,7 +767,7 @@ def page_how():
             "- **Brand videos with huge views and few comments are probably paid promotion.**\n"
             "- **Roman Urdu spelling varies,** so some comments are missed or mis-tagged; about a third stay unlabelled.\n"
             "- **The missed-sales figure is an estimate** from the assumptions in the sidebar, not a measured number.\n"
-            "- **Small groups:** size questions (38) and complaints (73) are small samples.\n"
+            "- **Small groups:** size questions (34) and complaints (54) are small samples.\n"
             "- **Patterns, not proof:** 'prices shown → fewer price questions' is a correlation worth A/B testing.\n"
             "- **The API returns up to 5 replies per thread,** so a few brand replies may be missed.")
         st.markdown(f"Series: [Project 1 sentiment]({P1_URL}) · [Project 2 ad budget]({P2_URL})")

@@ -88,7 +88,7 @@ Both scale in a straight line. On one small machine Spark is about 2× slower be
 - **Most comments are on creator videos.** They show what shoppers ask, not how a brand's own page performs.
 - **Inflated views.** Brand videos with huge views and almost no comments are probably promoted.
 - **Messy Roman Urdu.** Spelling varies, so some comments are missed or mislabelled. About a third are short or off-topic and stay unlabelled.
-- **Small groups.** Size questions (38 comments) and complaints (73) are small samples.
+- **Small groups.** Size questions (34 comments) and complaints (54) are small samples.
 - **Patterns, not proof.** Patterns like "prices shown → fewer price questions" are correlations to test, not proof.
 - **Missed replies.** The API returns up to 5 replies per thread, so a few owner replies may be missed.
 

@@ -9,6 +9,7 @@ user can change the price and conversion assumptions.
 
 Run after run_pipeline.py:  python src/web/export.py  [output path]
 """
+import datetime as dt
 import json
 import sys
 from pathlib import Path
@@ -24,7 +25,16 @@ PROC = ROOT / "data" / "processed"
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "web" / "data.json"
 CORE = ["Borjan", "Servis", "Ndure"]
 BRAND_POST, CREATOR_POST = "Brand's own post", "Creator / influencer post"
-DATA_DATE = "12 Nov 2026"
+SNAPSHOT = dict(run_date="2026-11-12", videos_found=2561, videos_kept=853, comments_raw=8508, comments_clean=6767)
+
+
+def run_info():
+    """Date and collection numbers of the data being exported (live run or the 12 Nov snapshot)."""
+    p = PROC / "pipeline_stats.json"
+    info = {**SNAPSHOT, **(json.loads(p.read_text()) if p.exists() else {})}
+    d = dt.date.fromisoformat(info["run_date"])
+    info["label"] = f"{d.day} {d.strftime('%b %Y')}"
+    return info
 
 ASK = {"price": "Price", "availability": "Where to buy", "delivery_order": "Order & delivery",
        "contact": "Contact", "size_fit": "Size", "complaint": "Complaint"}
@@ -59,7 +69,17 @@ def load():
     com = com.merge(vids[["video_id", "post_type", "channel", "channel_id", "title", "format", "content_type", "url"]],
                     on="video_id", how="left").merge(seg[["comment_id", "segment"]], on="comment_id", how="left")
     com["answered"] = com.thread.isin(set(com[com.owner_reply].thread))
+    fs = PROC / "first_seen.csv"
+    first = pd.read_csv(fs) if fs.exists() else pd.DataFrame(columns=["comment_id", "first_seen"])
+    com = com.merge(first, on="comment_id", how="left")
+    com["first_seen"] = com.first_seen.fillna(SNAPSHOT["run_date"])
     return com, vids
+
+
+def last_run_date(com):
+    """Comments first seen after the previous run are 'new'. With one run only, nothing is new."""
+    dates = sorted(com.first_seen.unique())
+    return dates[-1] if len(dates) > 1 else None
 
 
 def cities(cust):
@@ -144,7 +164,7 @@ def campaigns(cust, vids, picked, label, waiting_n, buy_q):
     return out
 
 
-def workspace(com, vids_all, picked, label):
+def workspace(com, vids_all, picked, label, newest=None):
     c = com[com.brand.isin(picked)]
     cust = c[~c.owner_reply]
     vids = vids_all[vids_all.brand.isin(picked)]
@@ -201,6 +221,8 @@ def workspace(com, vids_all, picked, label):
         top_level=int(len(top)), buying=int(len(buy_q)), waiting=int(len(waiting)),
         own_q=int(len(own)), own_answered=int(own.answered.sum()),
         creator_q=int((buy_q.post_type == CREATOR_POST).sum()),
+        new_buyers=int((buy_q.first_seen == newest).sum()) if newest else 0,
+        new_comments=int((cust.first_seen == newest).sum()) if newest else 0,
         cities=cities(cust)[:6], asks=asks, trend=trend,
         recent=int((d >= cut).sum()), older=int((d < cut).sum()),
         segments=segs, stats=stats, post_more=[card(r) for r in cg.head(3).itertuples()],
@@ -214,17 +236,19 @@ def workspace(com, vids_all, picked, label):
 def main():
     com, vids = load()
     brands = CORE + sorted(b for b in vids.brand.unique() if b not in CORE)
-    spaces = {"all": workspace(com, vids, brands, "All 8 brands"),
-              "core": workspace(com, vids, CORE, "Borjan · Servis · Ndure")}
+    newest = last_run_date(com)
+    spaces = {"all": workspace(com, vids, brands, f"All {len(brands)} brands", newest),
+              "core": workspace(com, vids, CORE, "Borjan · Servis · Ndure", newest)}
     for b in brands:
-        spaces[b] = workspace(com, vids, [b], b)
+        spaces[b] = workspace(com, vids, [b], b, newest)
 
     cust = com[~com.owner_reply]
     top = cust[~cust.is_reply]
     inbox = top[((top.intent == "high") | (top.need == "complaint")) & (~top.answered)].sort_values(["published", "likes"], ascending=False)
     inbox_items = [dict(id=i, brand=r.brand, ask=ASK.get(r.need, "Other"), need=r.need, text=str(r.text)[:500], date=r.published,
                         where="Your video" if r.post_type == BRAND_POST else f"Creator · {r.channel}",
-                        own=r.post_type == BRAND_POST, url=r.url, likes=int(r.likes), lang=r.lang)
+                        own=r.post_type == BRAND_POST, url=r.url, likes=int(r.likes), lang=r.lang,
+                        new=bool(newest and r.first_seen == newest))
                    for i, r in enumerate(inbox.itertuples())]
 
     comp = []
@@ -250,8 +274,11 @@ def main():
         b = pd.read_csv(PROC / "benchmark.csv")
         bench = b.astype(object).where(b.notna(), None).to_dict("records")   # NaN is not valid JSON
 
+    info = run_info()
+    limits = dict(size_q=int((cust.need == "size_fit").sum()), complaints=int((cust.need == "complaint").sum()),
+                  unlabelled=round(float((cust.need == "other").mean()), 3))
     data = dict(
-        date=DATA_DATE, brands=brands, spaces=spaces, inbox=inbox_items,
+        date=info["label"], updated=info["run_date"], pipeline=info, limits=limits, history=[], brands=brands, spaces=spaces, inbox=inbox_items,
         replies={k: v for k, v in REPLIES.items()}, competitors=comp,
         how=dict(metrics=metrics, comments=int(len(com)), customer_comments=int(len(cust)), videos=int(len(vids)),
                  points=[dict(x=round(float(r.x), 3), y=round(float(r.y), 3), g=names.get(r.cluster, "Other"), t=str(r.text)[:70])
