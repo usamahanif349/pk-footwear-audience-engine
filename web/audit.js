@@ -82,7 +82,7 @@
     <section class="sec"><div class="au-offer">
       <div><small>WHAT JOOTA PULSE DOES FOR ${esc(short(b).toUpperCase())}</small><h2>Every Monday, your team gets the buyers to answer and the replies to send.</h2>
         <ul><li>${svg("chat")}A leads inbox with ready replies in Roman Urdu and English</li><li>${svg("check")}Alerts for new buyers, complaints and creator leads</li><li>${svg("pin")}Your health score and rank against ${others} competitors, every week</li><li>${svg("video")}Campaign ideas with ad copy, plus a client-ready PDF report</li></ul></div>
-      <div class="au-cta"><a class="btn coral lg" data-audit href="#">Book a 20-min call</a><a class="btn ghost lg" href="app.html?brand=${encodeURIComponent(b)}#today">Open ${esc(short(b))}'s live workspace</a><span>Free for the first month for early brands.</span></div>
+      <div class="au-cta"><a class="btn coral lg" data-audit href="#">Book a 20-min call</a><a class="btn ghost lg" href="app.html?brand=${encodeURIComponent(b)}#today">Open ${esc(short(b))}'s live workspace</a><span>Free 30-day pilot for the first 3 brands. No payment details needed.</span></div>
     </div></section>
     <p class="au-method">How we got these numbers: public YouTube comments collected through the official YouTube Data API, cleaned (Indian and foreign videos removed, commenter names never stored) and tagged by a multilingual AI model that reads English, Roman Urdu and Urdu. Missed sales is an estimate, not a measured figure.</p>`.replace(/data-audit href="#"/g, `data-audit href="mailto:usamahanif349@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`Hi Usama,\n\nI saw the Joota Pulse audit for ${short(b)}. Let's talk.\n\nName:\nRole:\nBest time to call:\n`)}"`);
   }
