@@ -27,14 +27,41 @@
     how: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     moon: '<path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/>',
+    settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
+    bell: '<path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+    flame: '<path d="M12 22c4 0 7-2.7 7-7 0-4-3-6.5-4-10-2 2-2.5 4-2.5 5.5C11 9 10 7.5 10 5c-3 2.5-5 6-5 10 0 4.3 3 7 7 7z"/>',
+    pin: '<path d="M12 22s7-6.2 7-12a7 7 0 10-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/>',
+    alert: '<path d="M10.3 3.9L2 18a2 2 0 001.7 3h16.6a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0zM12 9v4M12 17h.01"/>',
+    video: '<rect x="2" y="6" width="14" height="12" rx="3"/><path d="M16 10l6-3v10l-6-3"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    rupee: '<path d="M6 4h12M6 9h12M9 4c6 0 6 10 0 10H6l8 7"/>',
+    tag: '<path d="M20.6 13.4L13.4 20.6a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+    truck: '<path d="M1 4h14v12H1zM15 9h4l3 3v4h-7"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="18.5" cy="18.5" r="2"/>',
+    phone: '<path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.5c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/>',
+    ruler: '<path d="M3 17L17 3l4 4L7 21zM7 13l2 2M10 10l2 2M13 7l2 2"/>',
+    lens: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M8 11h6M11 8v6"/>',
+    heart: '<path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 00-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 000-7.8z"/>',
+    tv: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M17 2l-5 5-5-5"/>',
+    star: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',
+    up: '<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>',
+    down: '<path d="M3 7l6 6 4-4 8 8M15 17h6v-6"/>',
+    share: '<path d="M4 12v8h16v-8M12 3v13M7 8l5-5 5 5"/>',
+    arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   };
+  const AICON = { "🔥": "flame", "📍": "pin", "⚠️": "alert", "🎬": "video", "💤": "clock" };
+  const SICON = { "Where-can-I-buy askers": "pin", "Price checkers": "rupee", "Deal hunters": "tag", "Order & delivery askers": "truck",
+    "Contact seekers": "phone", "Size & fit askers": "ruler", "Unhappy customers": "alert", "Quality-conscious shoppers": "lens",
+    "Product fans": "heart", "Ad & meme crowd": "tv", "Supporters (general praise)": "star" };
+  const segIcon = s => svg(SICON[s.name] || "customers");
+  const alertIcon = a => svg(AICON[a.icon] || "bell");
   const svg = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[p]}</svg>`;
   const PAGES = [
     { grp: "Workspace" },
     { id: "today", label: "Today" }, { id: "inbox", label: "Leads inbox", count: true }, { id: "customers", label: "Your customers" },
     { id: "content", label: "Post this, not that" }, { id: "competitors", label: "Competitors" }, { id: "campaigns", label: "Campaign ideas" },
     { grp: "Share" }, { id: "digest", label: "Weekly digest" }, { id: "report", label: "Client report" },
-    { grp: "About" }, { id: "start", label: "Switch brand" }, { id: "how", label: "How it works" },
+    { grp: "About" }, { id: "start", label: "Switch brand" }, { id: "settings", label: "Settings" }, { id: "how", label: "How it works" },
   ];
   const TABS = ["today", "inbox", "customers", "campaigns", "report"];
   const TAB_LABEL = { today: "Today", inbox: "Leads", customers: "Customers", campaigns: "Ideas", report: "Report" };
@@ -68,7 +95,7 @@
   const header = (title, sub, right = "") => `<div class="page-h"><div><h1>${title}</h1><p>${sub}</p></div>${right}</div>`;
   const hbars = rows => {
     const mx = Math.max(...rows.map(r => r.n), 1);
-    return rows.map(r => `<div class="hbar"><div class="row">${esc(r.label)}<span>${fmt(r.n)}</span></div><div class="track"><div class="fill ${r.hot ? "hot" : ""}" style="width:${(r.n / mx * 100).toFixed(0)}%"></div></div></div>`).join("");
+    return rows.map(r => `<div class="hbar"><div class="row">${r.icon ? `<i class="hic">${svg(r.icon)}</i>` : ""}${esc(r.label)}<span>${fmt(r.n)}</span></div><div class="track"><div class="fill ${r.hot ? "hot" : ""}" style="width:${(r.n / mx * 100).toFixed(0)}%"></div></div></div>`).join("");
   };
   const ago = iso => {
     const days = Math.round((Date.now() - new Date(iso + "T00:00:00").getTime()) / 864e5);
@@ -177,7 +204,7 @@
       </div>
 
       <section class="panel s5"><div class="panel-h"><h2>Alerts</h2><span>${D.history && D.history.length > 1 ? "since the last update" : "last 30 days of data"}</span></div>
-        ${w.alerts.map(a => `<a class="alert" href="#${a.go}"><div class="ic ${a.tone}">${a.icon}</div><p>${esc(a.text)}</p></a>`).join("") || '<p class="note">All quiet.</p>'}</section>
+        ${w.alerts.map(a => `<a class="alert" href="#${a.go}"><div class="ic ${a.tone}">${alertIcon(a)}</div><p>${esc(a.text)}</p></a>`).join("") || '<p class="note">All quiet.</p>'}</section>
       <section class="panel s7"><div class="panel-h"><h2>Buyers waiting for you</h2><a class="more" href="#inbox">Open inbox (${fmt(w.waiting)})</a></div>
         ${preview.map(m => `<div class="msg">${avatar(m.brand, true)}<div><div class="meta"><b>${esc(m.brand)}</b>${m.new ? '<span class="tag new">New</span>' : ""}<span class="tag ${tagFor(m.ask)}">${esc(m.ask)}</span><span>${esc(m.where)}</span></div>
           <div class="txt">${esc(m.text)}</div><div class="rep"><b>Suggested reply:</b> ${esc(reply(m.need, m.brand)).slice(0, 120)}…</div></div><span class="note">${esc(m.date.slice(5))}</span></div>`).join("") || '<p class="note">No waiting buyers here.</p>'}</section>
@@ -185,7 +212,7 @@
       <section class="panel s7"><div class="panel-h"><h2>Do these 3 things today</h2><a class="more" href="#campaigns">All campaign ideas</a></div>
         ${w.campaigns.slice(0, 3).map(c => `<div class="camp"><div class="tags"><span class="tag ${c.impact.startsWith("High") ? "hot" : "warm"}">${c.impact}</span><span class="tag ok">${c.effort}</span><span class="tag cool">${esc(c.channel)}</span></div><h3>${esc(c.title)}</h3><p>${esc(c.do)}</p><div class="why">${esc(fillMoney(c.why))}</div></div>`).join("")}</section>
       <div class="s5" style="display:grid;gap:18px;align-content:start">
-        <section class="panel"><div class="panel-h"><h2>Ready-to-buy customers</h2><a class="more" href="#customers">All groups</a></div>${hbars(ready.map(s => ({ label: `${s.emoji}  ${s.name}`, n: s.people, hot: true })))}</section>
+        <section class="panel"><div class="panel-h"><h2>Ready-to-buy customers</h2><a class="more" href="#customers">All groups</a></div>${hbars(ready.map(s => ({ label: s.name, icon: SICON[s.name], n: s.people, hot: true })))}</section>
         <section class="panel"><div class="panel-h"><h2>Creators to partner with</h2><a class="more" href="#content">See all</a></div>
           ${w.leads.slice(0, 3).map((l, i) => `<div class="lead"><span class="rk ${i === 0 ? "top" : ""}">${i + 1}</span>${avatar(l.channel, true)}<div><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.channel)}</a><div class="sub">${esc(l.brands)}</div></div><div class="n">${l.buyers}<small>buyers asked</small></div></div>`).join("") || '<p class="note">No creator videos for this brand.</p>'}</section>
       </div>
@@ -214,7 +241,7 @@
       <div class="chips" role="group" aria-label="Type">${kinds.map(k => `<button type="button" class="chip ${S.kind === k ? "on" : ""}" data-kind="${k}">${k}<em>${count(k)}</em></button>`).join("")}</div>
       <div class="inbox">
         <section class="panel"><input class="search" id="q" type="search" placeholder="Search comments" value="${esc(S.q)}" aria-label="Search comments">
-          <div class="ilist" id="ilist">${rows || '<p class="note">Nothing here. 🎉</p>'}</div>
+          <div class="ilist" id="ilist">${rows || '<p class="note">Nothing here. All answered.</p>'}</div>
           <div class="row-btns"><button class="btn ghost sm" id="export" type="button">Export leads (CSV)</button><span class="note" style="align-self:center">${fmt(items.length)} shown</span></div>
         </section>
         <section class="panel reply-pane">${m ? `
@@ -255,8 +282,8 @@
         <div class="stat s3 bad"><div class="l">Need care</div><div class="v">${fmt((w.segments.find(s => s.name === "Unhappy customers") || {}).people || 0)}</div><div class="n">complaints to fix</div></div>
         <div class="stat s3 good"><div class="l">Fans</div><div class="v">${fmt(w.segments.filter(s => s.badge === "Fans").reduce((a, s) => a + s.people, 0))}</div><div class="n">praise and love</div></div>
       </div>
-      <div class="tiles">${w.segments.map(s => `<button type="button" class="tile ${s.name === S.seg ? "on" : ""}" data-seg="${esc(s.name)}"><div class="h"><span class="e">${s.emoji}</span><span class="tag ${s.tone}">${s.badge}</span></div><div class="nm">${esc(s.name)}</div><div class="big">${fmt(s.people)} <small>people</small></div><div class="q">${s.quote ? `“${esc(s.quote)}”` : ""}</div><div class="do"><b>Do:</b> ${esc(s.todo)}</div></button>`).join("")}</div>
-      ${sel ? `<section class="panel" style="margin-top:18px" id="hear"><div class="panel-h"><h2>${sel.emoji} ${esc(sel.name)}: in their words</h2><span>${fmt(sel.comments)} comments</span></div>
+      <div class="tiles">${w.segments.map(s => `<button type="button" class="tile ${s.name === S.seg ? "on" : ""}" data-seg="${esc(s.name)}"><div class="h"><span class="e">${segIcon(s)}</span><span class="tag ${s.tone}">${s.badge}</span></div><div class="nm">${esc(s.name)}</div><div class="big">${fmt(s.people)} <small>people</small></div><div class="q">${s.quote ? `“${esc(s.quote)}”` : ""}</div><div class="do"><b>Do:</b> ${esc(s.todo)}</div></button>`).join("")}</div>
+      ${sel ? `<section class="panel" style="margin-top:18px" id="hear"><div class="panel-h"><h2><i class="hic">${segIcon(sel)}</i>${esc(sel.name)}: in their words</h2><span>${fmt(sel.comments)} comments</span></div>
         <div class="grid">${sel.examples.map(e => `<div class="s6 cmt" style="font-size:.93rem"><small>${esc(e.brand)} · ${esc(e.date)}</small>${esc(e.text)}</div>`).join("")}</div></section>` : ""}
     </div>`;
   }
@@ -271,13 +298,13 @@
         <div class="stat"><div class="v">${pct(st.hi_creator)} vs ${pct(st.hi_brand)}</div><div class="n">of comments are buying questions on creator vs brand videos</div></div>
         <div class="stat"><div class="v">${Math.round(st.views_ratio)}×</div><div class="n">more views on brand videos, mostly paid reach with little conversation</div></div></div>` : ""}
       <div class="grid">
-        <section class="panel s6"><div class="panel-h"><h2>✅ Post more of this</h2><span>most conversation per view</span></div>${w.post_more.map(c => card(c, "ok")).join("") || '<p class="note">Not enough videos.</p>'}</section>
-        <section class="panel s6"><div class="panel-h"><h2>✋ Less of this</h2><span>views without conversation</span></div>${w.post_less.map(c => card(c, "grey")).join("") || '<p class="note">Not enough videos.</p>'}</section>
+        <section class="panel s6"><div class="panel-h"><h2><i class="hic ok">${svg("up")}</i>Post more of this</h2><span>most conversation per view</span></div>${w.post_more.map(c => card(c, "ok")).join("") || '<p class="note">Not enough videos.</p>'}</section>
+        <section class="panel s6"><div class="panel-h"><h2><i class="hic bad">${svg("down")}</i>Less of this</h2><span>views without conversation</span></div>${w.post_less.map(c => card(c, "grey")).join("") || '<p class="note">Not enough videos.</p>'}</section>
         <section class="panel s6"><div class="panel-h"><h2>Creator leaderboard</h2><span>buyers asking on their videos</span></div>
           ${w.leads.slice(0, 8).map((l, i) => `<div class="lead"><span class="rk ${i < 3 ? "top" : ""}">${i + 1}</span>${avatar(l.channel, true)}<div><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.channel)}</a><div class="sub">${esc(l.brands)} · creator replies to ${pct(l.answered)}</div></div><div class="n">${l.buyers}<small>buyers asked</small></div></div>`).join("") || '<p class="note">No creator videos for this brand.</p>'}
           ${w.leads.length ? '<div class="row-btns"><button class="btn ghost sm" id="pitch" type="button">Copy a partnership message</button></div>' : ""}</section>
         <section class="panel s6"><div class="panel-h"><h2>Standout posts</h2><span>far ahead of similar posts</span></div>
-          ${w.standouts.map(s => `<div class="pc"><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title.slice(0, 80))}</a><div class="s">${esc(s.brand)} · ${esc(s.channel)} · ${fmt(s.views)} views</div><div class="w">▲ ${esc(s.why)}</div></div>`).join("") || '<p class="note">No standout posts here.</p>'}</section>
+          ${w.standouts.map(s => `<div class="pc"><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title.slice(0, 80))}</a><div class="s">${esc(s.brand)} · ${esc(s.channel)} · ${fmt(s.views)} views</div><div class="w">${svg("up")}${esc(s.why)}</div></div>`).join("") || '<p class="note">No standout posts here.</p>'}</section>
       </div></div>`;
   }
   function wireContent() {
@@ -342,7 +369,7 @@
         <div class="hd"><div><b>From:</b> Joota Pulse &lt;digest@jootapulse&gt;</div><div><b>To:</b> marketing team, ${esc(w.label)}</div><div><b>Subject:</b> ${fmt(w.waiting)} buyers are waiting for your reply</div></div>
         <div class="bd"><h2>Good morning! Here's your week on YouTube.</h2>
           <div class="kpis"><div class="kpi"><b style="color:var(--coral)">${money(w.waiting)}</b><span>missed sales (estimate)</span></div><div class="kpi"><b>${fmt(w.waiting)}</b><span>buyers waiting</span></div><div class="kpi"><b style="color:${scoreColor(h.score)}">${h.score}/100</b><span>brand health</span></div></div>
-          <h3>What happened</h3>${w.alerts.map(a => `<div class="alert"><div class="ic ${a.tone}">${a.icon}</div><p>${esc(a.text)}</p></div>`).join("")}
+          <h3>What happened</h3>${w.alerts.map(a => `<div class="alert"><div class="ic ${a.tone}">${alertIcon(a)}</div><p>${esc(a.text)}</p></div>`).join("")}
           <h3>Answer these first</h3>${leads.map(m => `<div class="msg">${avatar(m.brand, true)}<div><div class="meta"><b>${esc(m.brand)}</b><span class="tag ${tagFor(m.ask)}">${esc(m.ask)}</span></div><div class="txt">${esc(m.text)}</div></div><span></span></div>`).join("")}
           <h3>Your 3 actions</h3>${w.campaigns.slice(0, 3).map((c, i) => `<div class="kv"><span><b>${i + 1}. ${esc(c.title)}</b><br><span class="note">${esc(c.do)}</span></span></div>`).join("")}
           <div class="row-btns"><a class="btn primary" href="#inbox">Open the leads inbox</a></div></div></div></div>`;
@@ -354,7 +381,7 @@
     const rate = w.own_q ? pct(w.own_answered / w.own_q) : "–";
     const segs = w.segments.filter(s => s.tone === "hot" || s.tone === "bad").sort((a, b) => b.people - a.people).slice(0, 5);
     return `<div class="fade">${header("Client report", "A one-page snapshot to send to the brand. Switch the workspace to make one for a single brand.",
-      `<button class="btn primary no-print" id="print" type="button">Download PDF</button>`)}
+      `<div class="row-btns no-print" style="margin:0">${W().brands.length === 1 ? `<a class="btn ghost" href="audit.html?brand=${encodeURIComponent(W().brands[0])}" target="_blank" rel="noopener">${svg("share")}Open the shareable audit</a>` : ""}<button class="btn primary" id="print" type="button">Download PDF</button></div>`)}
       <article class="sheet"><div class="hd"><small>JOOTA PULSE · AUDIENCE INTELLIGENCE</small><h2>Client snapshot: ${esc(w.label)}</h2><p>Based on ${fmt(w.comments)} real public YouTube comments · data updated ${esc(D.date)}</p></div>
       <div class="bd"><div class="k4">
         <div class="k"><div class="l">Missed sales (estimate)</div><div class="v">${money(w.waiting)}</div><div class="n">${fmt(w.waiting)} buyers waiting</div></div>
@@ -362,7 +389,7 @@
         <div class="k"><div class="l">Reply rate, own videos</div><div class="v">${rate}</div><div class="n">${w.own_answered} of ${w.own_q} answered</div></div>
         <div class="k"><div class="l">Hottest city</div><div class="v">${w.cities[0] ? esc(w.cities[0].city) : "–"}</div><div class="n">${w.cities[0] ? w.cities[0].n + " mentions" : ""}</div></div></div>
         <h3>Do these first</h3>${w.campaigns.slice(0, 3).map((c, i) => `<div class="act"><i>${i + 1}</i><div><b>${esc(c.title)}: ${esc(c.do)}</b><span>${esc(fillMoney(c.why))}</span></div></div>`).join("")}
-        <div class="two"><div><h3>Who your customers are</h3>${segs.map(s => `<div class="li"><span>${s.emoji} ${esc(s.name)}</span><b>${fmt(s.people)}</b></div>`).join("")}</div>
+        <div class="two"><div><h3>Who your customers are</h3>${segs.map(s => `<div class="li"><span>${esc(s.name)}</span><b>${fmt(s.people)}</b></div>`).join("")}</div>
         <div><h3>Where they are</h3>${w.cities.slice(0, 4).map(c => `<div class="li"><span>${esc(c.city)}</span><b>${c.n}</b></div>`).join("") || '<p class="note">No cities named.</p>'}
         <h3>Creators to partner with</h3>${w.leads.slice(0, 3).map(l => `<div class="li"><span>${esc(l.channel)}</span><b>${l.buyers} buyers</b></div>`).join("") || '<p class="note">None.</p>'}</div></div>
         <div class="ft">Missed sales = unanswered buying questions × ${S.conv}% who would buy × Rs ${fmt(S.price)} per pair; an estimate, not a measured figure. Brand health = buying interest (40%), few complaints (35%) and fans (25%), each relative to the other brands. Source: public YouTube comments via the official YouTube Data API; commenter names removed. ${esc(D.links.repo)}</div>
@@ -436,12 +463,104 @@
     }
   }
 
+  /* ---------------- SETTINGS ---------------- */
+  function settings() {
+    return `<div class="fade">${header("Settings", "Your brand details. Saved in this browser and used across the app.")}
+      <div class="grid">
+        <section class="panel s7"><div class="panel-h"><h2>Brand</h2></div>
+          <label class="field">Workspace<select id="set-ws">${["all", "core"].concat(D.brands).map(k => `<option value="${esc(k)}" ${k === S.ws ? "selected" : ""}>${esc(D.spaces[k].label)}</option>`).join("")}</select></label>
+          <label class="field">Shop or order link (goes into every reply)<input id="set-link" value="${esc(S.link)}" placeholder="https://yourbrand.pk"></label>
+          <label class="field">Reply language<select id="set-lang"><option value="ru" ${S.lang === "ru" ? "selected" : ""}>Roman Urdu</option><option value="en" ${S.lang === "en" ? "selected" : ""}>English</option></select></label>
+        </section>
+        <section class="panel s5"><div class="panel-h"><h2>Missed-sales estimate</h2></div>
+          <label class="field">Average pair price (Rs)<input id="set-price" type="number" min="500" max="30000" step="500" value="${S.price}"></label>
+          <label class="field">Askers who'd buy if answered (%)<input id="set-conv" type="number" min="1" max="50" value="${S.conv}"></label>
+          <p class="note">Missed sales = unanswered buying questions × this share × the pair price.</p></section>
+        <section class="panel s7"><div class="panel-h"><h2>Appearance</h2></div>
+          <div class="seg" role="group" aria-label="Theme"><button type="button" data-th="dark" class="${S.theme !== "light" ? "on" : ""}">Dark</button><button type="button" data-th="light" class="${S.theme === "light" ? "on" : ""}">Light</button></div></section>
+        <section class="panel s5"><div class="panel-h"><h2>Data</h2></div>
+          <div class="kv"><span>Last update</span><b>${esc(D.date)}</b></div><div class="kv"><span>Next update</span><b>Every Monday</b></div><div class="kv"><span>Source</span><b>YouTube Data API</b></div></section>
+      </div></div>`;
+  }
+  function wireSettings() {
+    $("#set-ws").onchange = e => choose(e.target.value, "settings");
+    $("#set-link").oninput = e => { S.link = e.target.value; store.set("link", S.link); };
+    $("#set-lang").onchange = e => { S.lang = e.target.value; store.set("lang", S.lang); toast("Saved."); };
+    $("#set-price").oninput = e => { S.price = Math.max(0, Number(e.target.value) || 0); store.set("price", S.price); $("#price").value = S.price; };
+    $("#set-conv").oninput = e => { S.conv = Math.min(100, Math.max(0, Number(e.target.value) || 0)); store.set("conv", S.conv); $("#conv").value = S.conv; };
+    $$("[data-th]").forEach(b => b.onclick = () => { setTheme(b.dataset.th); store.set("theme", S.theme); render(); });
+  }
+
+  /* ---------------- notifications bell ---------------- */
+  function bell() {
+    if (!S.ws) { $("#bell").hidden = true; return; }
+    $("#bell").hidden = false;
+    const w = W(), seen = store.get("seen", {})[S.ws] === D.updated;
+    $("#bell-n").textContent = w.alerts.length; $("#bell-n").hidden = seen || !w.alerts.length;
+    $("#bell-pop").innerHTML = `<div class="pop-h"><b>Alerts</b><span>${esc(w.label)} · ${esc(D.date)}</span></div>`
+      + (w.alerts.map(a => `<a class="alert" href="#${a.go}"><div class="ic ${a.tone}">${alertIcon(a)}</div><p>${esc(a.text)}</p></a>`).join("") || '<p class="note">All quiet this week.</p>')
+      + `<a class="pop-f" href="#digest">Open the weekly digest ${svg("arrow")}</a>`;
+  }
+  function wireBell() {
+    const btn = $("#bell"), pop = $("#bell-pop");
+    btn.onclick = e => {
+      e.stopPropagation(); pop.hidden = !pop.hidden; btn.setAttribute("aria-expanded", String(!pop.hidden));
+      if (!pop.hidden) { const sn = store.get("seen", {}); sn[S.ws] = D.updated; store.set("seen", sn); $("#bell-n").hidden = true; }
+    };
+    pop.onclick = e => { if (e.target.closest("a")) pop.hidden = true; };
+    document.addEventListener("click", e => { if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) pop.hidden = true; });
+  }
+
+  /* ---------------- Ctrl+K command palette ---------------- */
+  let cmdSel = 0;
+  function cmdItems(q) {
+    const pages = PAGES.filter(p => p.id).map(p => ({ kind: "Page", label: p.label, icon: p.id, run: () => { location.hash = p.id; } }));
+    const brands = ["all", "core"].concat(D.brands).map(k => ({ kind: "Workspace", label: D.spaces[k].label, icon: "customers", run: () => choose(k) }));
+    const acts = [
+      { kind: "Action", label: S.theme === "light" ? "Switch to dark mode" : "Switch to light mode", icon: S.theme === "light" ? "moon" : "sun", run: () => { setTheme(S.theme === "light" ? "dark" : "light"); store.set("theme", S.theme); render(); } },
+      { kind: "Action", label: "Copy the weekly digest", icon: "digest", run: () => S.ws && copy(digestText(W()), "Digest copied.") },
+      { kind: "Action", label: "Download the client report (PDF)", icon: "report", run: () => { location.hash = "report"; setTimeout(() => window.print(), 400); } },
+    ];
+    const all = (S.ws ? pages : []).concat(brands, acts), t = q.trim().toLowerCase();
+    if (!t) return all;
+    const hit = all.filter(i => (i.label + " " + i.kind).toLowerCase().includes(t));
+    return hit.filter(i => i.label.toLowerCase().startsWith(t)).concat(hit.filter(i => !i.label.toLowerCase().startsWith(t)));
+  }
+  function openCmd() {
+    const box = $("#cmdk"); box.hidden = false; cmdSel = 0;
+    const inp = $("#cmdk-q"); inp.value = ""; drawCmd(); inp.focus();
+  }
+  function closeCmd() { $("#cmdk").hidden = true; }
+  function drawCmd() {
+    const items = cmdItems($("#cmdk-q").value); cmdSel = Math.min(cmdSel, Math.max(items.length - 1, 0));
+    $("#cmdk-list").innerHTML = items.map((it, i) => `<button type="button" class="ci ${i === cmdSel ? "on" : ""}" data-i="${i}">${svg(it.icon)}<span>${esc(it.label)}</span><em>${it.kind}</em></button>`).join("") || '<p class="note" style="padding:14px">No results.</p>';
+    $$("#cmdk-list .ci").forEach(b => { b.onclick = () => { closeCmd(); items[Number(b.dataset.i)].run(); }; b.onmousemove = () => { if (cmdSel !== Number(b.dataset.i)) { cmdSel = Number(b.dataset.i); drawCmd(); } }; });
+    $("#cmdk-list .ci.on")?.scrollIntoView({ block: "nearest" });
+    return items;
+  }
+  function wireCmd() {
+    $("#cmd-btn").onclick = openCmd;
+    $("#cmdk").onclick = e => { if (e.target.id === "cmdk") closeCmd(); };
+    $("#cmdk-q").oninput = () => { cmdSel = 0; drawCmd(); };
+    $("#cmdk-q").onkeydown = e => {
+      const items = cmdItems($("#cmdk-q").value);
+      if (e.key === "ArrowDown") { cmdSel = (cmdSel + 1) % Math.max(items.length, 1); drawCmd(); e.preventDefault(); }
+      else if (e.key === "ArrowUp") { cmdSel = (cmdSel - 1 + items.length) % Math.max(items.length, 1); drawCmd(); e.preventDefault(); }
+      else if (e.key === "Enter" && items[cmdSel]) { closeCmd(); items[cmdSel].run(); }
+    };
+    document.addEventListener("keydown", e => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); $("#cmdk").hidden ? openCmd() : closeCmd(); }
+      else if (e.key === "Escape") { closeCmd(); $("#bell-pop").hidden = true; }
+    });
+  }
+
   /* ---------------- router ---------------- */
-  const VIEWS = { start, today, inbox, customers, content, competitors, campaigns, digest, report, how };
+  const VIEWS = { start, today, inbox, customers, content, competitors, campaigns, digest, report, how, settings };
   function render() {
     let id = location.hash.slice(1) || "today";
     if (!VIEWS[id]) id = "today";
-    if (!S.ws && id !== "how") id = "start";
+    if (!S.ws && id !== "how" && id !== "settings") id = "start";
+    if (!S.ws && id === "settings") id = "start";
     charts.splice(0).forEach(c => c.destroy());
     if (S.ws) nav(id); else { $("#nav").innerHTML = ""; $("#tabbar").innerHTML = ""; }
     $("#view").innerHTML = VIEWS[id]();
@@ -454,6 +573,8 @@
     if (id === "competitors") drawCompetitors();
     if (id === "how") drawHow();
     if (id === "report") $("#print").onclick = () => window.print();
+    if (id === "settings") wireSettings();
+    bell();
     if (id === "digest") {
       const txt = digestText(W());
       $("#dcopy").onclick = () => copy(txt, "Digest copied.");
@@ -462,9 +583,10 @@
     const page = PAGES.find(p => p.id === id);
     document.title = `${page ? page.label : "Choose a brand"} · Joota Pulse`;
   }
-  function choose(ws) {
+  function choose(ws, stay) {
     S.ws = ws; S.sel = null; S.seg = null; store.set("ws", ws);
-    if (location.hash === "#today") render(); else location.hash = "today";
+    const to = "#" + (stay || "today");
+    if (location.hash === to) render(); else location.hash = to;
     window.scrollTo(0, 0);
   }
 
@@ -485,6 +607,8 @@
     $("#price").oninput = e => { S.price = Math.max(0, Number(e.target.value) || 0); store.set("price", S.price); render(); };
     $("#conv").oninput = e => { S.conv = Math.min(100, Math.max(0, Number(e.target.value) || 0)); store.set("conv", S.conv); render(); };
     window.addEventListener("hashchange", () => { render(); window.scrollTo(0, 0); });
+    wireBell(); wireCmd();
+    $("#cmd-btn").querySelector("kbd").textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K";
     render();
   }
 

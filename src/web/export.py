@@ -56,6 +56,7 @@ SEGMENTS = [  # name, emoji, badge, tone, what to do, needs that define the grou
     ("Ad & meme crowd", "📺", "Buzz", "cool", "Reuse the buzz in throwback content.", {"nostalgia_ad"}),
     ("Supporters (general praise)", "👏", "Fans", "cool", "Thank them and point to the shop.", {"general_praise", "praise_content"}),
 ]
+NOT_SHOES = r"\d:\d\d|co ?-?ord|dress|suit|shirt|kurt|lawn|dupatta|lehenga|frock|trouser|jeans|bag|makeup|jewel"
 CITY = {"Lahore": r"lahore|lhr", "Karachi": r"karachi|khi", "Faisalabad": r"faisalabad|fsd", "Rawalpindi": r"pindi|rawalpindi",
         "Islamabad": r"islamabad|isb", "Hyderabad": r"hyderabad", "Multan": r"multan", "Sialkot": r"sialkot",
         "Peshawar": r"peshawar", "Gujranwala": r"gujranwala"}
@@ -122,7 +123,7 @@ def campaigns(cust, vids, picked, label, waiting_n, buy_q):
         out.append(dict(id="creators", title="Creator sale-vlog partnership", impact="High impact", effort="Medium effort",
                         channel="Creators",
                         why=f"Creator videos hold {total:,} buying questions the brand never sees. Top: "
-                            + ", ".join(x["channel"] for x in ld[:3]) + ".",
+                            + ", ".join(str(x["channel"]).strip() for x in ld[:3]) + ".",
                         do="Send top creators a price list, size chart and order link to pin.",
                         en="Brief for creators: show 5 best-sellers with price on screen, try one pair on, pin the order link and sale end date.",
                         ru="Creator brief: 5 best-sellers price ke saath dikhayein, ek joota pehen kar dikhayein, order link aur sale ki last date pin karein."))
@@ -263,7 +264,9 @@ def workspace(com, vids_all, picked, label, newest=None):
         if name not in g.index:
             continue
         sub = cust[(cust.segment == name) & cust.need.isin(needs)]
-        best = sub[(sub.label_source == "word list") & sub.text.astype(str).str.len().between(15, 90)]
+        # sample quote: short, tagged by the word list, and clearly about shoes (no clothing questions, no timestamps)
+        off = sub.text.astype(str).str.lower().str.contains(NOT_SHOES)
+        best = sub[(sub.label_source == "word list") & sub.text.astype(str).str.len().between(15, 90) & ~off]
         quote = best.sort_values("likes", ascending=False).text.iloc[0] if len(best) else ""
         ex = sub.drop_duplicates("text")
         ex = ex.sample(min(6, len(ex)), random_state=4) if len(ex) else ex
