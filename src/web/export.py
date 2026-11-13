@@ -77,9 +77,17 @@ def load():
 
 
 def last_run_date(com):
-    """Comments first seen after the previous run are 'new'. With one run only, nothing is new."""
+    """Marks 'new' comments and returns the latest run date (None after the first run).
+    New = first collected in the latest run AND posted on or after the previous run date.
+    Older comments that turn up because search found a video for the first time are added
+    to the data, but they are not new buyers, so they are not counted or tagged as new."""
     dates = sorted(com.first_seen.unique())
-    return dates[-1] if len(dates) > 1 else None
+    if len(dates) < 2:
+        com["is_new"] = False
+        return None
+    newest, prev = dates[-1], dates[-2]
+    com["is_new"] = (com.first_seen == newest) & (com.published.astype(str) >= prev)
+    return newest
 
 
 def cities(cust):
@@ -164,6 +172,69 @@ def campaigns(cust, vids, picked, label, waiting_n, buy_q):
     return out
 
 
+HEALTH_WEIGHTS = {"demand": 0.40, "low_complaints": 0.35, "fans": 0.25}
+MIN_OWN_Q = 5   # fewer buying questions than this on a brand's own videos: reply rate is "no data"
+
+
+def health_scores(cust, brands):
+    """Brand Health Score (0-100): how strong a brand's YouTube audience is, comparable across brands.
+    demand         share of comments that are buying questions, relative to the best brand  (40%)
+    low_complaints 1 - complaint share relative to the brand with the most complaints        (35%)
+    fans           share of praise comments, relative to the best brand                     (25%)
+    The reply rate is reported next to the score, not inside it: three brands have no buying
+    questions on their own videos, so mixing it in would reward brands for having no channel."""
+    raw = {}
+    for b in brands:
+        s = cust[cust.brand == b]
+        t = s[~s.is_reply]
+        own = t[(t.intent == "high") & (t.post_type == BRAND_POST)]
+        raw[b] = dict(reply=(own.answered.mean() if len(own) >= MIN_OWN_Q else None), demand=(t.intent == "high").mean(),
+                      complaints=(s.need == "complaint").mean(),
+                      fans=s.need.isin(["praise_product", "general_praise"]).mean(), own_q=len(own))
+    mx = {k: max(r[k] for r in raw.values()) or 1 for k in ["demand", "complaints", "fans"]}
+    out = {}
+    for b, r in raw.items():
+        parts = {"demand": r["demand"] / mx["demand"], "low_complaints": 1 - r["complaints"] / mx["complaints"],
+                 "fans": r["fans"] / mx["fans"]}
+        score = sum(parts[k] * w for k, w in HEALTH_WEIGHTS.items()) * 100
+        out[b] = dict(score=int(round(score)), parts={k: round(float(v), 3) for k, v in parts.items()},
+                      reply_rate=None if r["reply"] is None else round(float(r["reply"]), 3), own_q=int(r["own_q"]))
+    for i, b in enumerate(sorted(out, key=lambda b: -out[b]["score"]), 1):
+        out[b]["rank"] = i
+    return out
+
+
+def alerts(cust, buy_q, own, run_date, newest):
+    """Short alerts for the feed. Window: since the last update, or the last 30 days of data."""
+    if newest:
+        start, when = newest, "since the last update"
+        in_win = lambda df: df[df.is_new]
+    else:
+        start = str((dt.date.fromisoformat(run_date) - dt.timedelta(days=30)))
+        when = "in the last 30 days"
+        in_win = lambda df: df[df.published >= start]
+    out = []
+    w = in_win(buy_q)
+    if len(w):
+        n = int((~w.answered).sum())
+        out.append(dict(icon="🔥", tone="hot", text=f"{n} buyers asked about price, stock or delivery {when} and are still waiting.", go="inbox"))
+    cl = cities(in_win(cust))
+    if cl and cl[0]["n"] >= 2:
+        out.append(dict(icon="📍", tone="cool", text=f"{cl[0]['city']} is the most-asked city {when} ({cl[0]['n']} mentions).", go="customers"))
+    comp = in_win(cust[cust.need == "complaint"])
+    if len(comp):
+        out.append(dict(icon="⚠️", tone="bad", text=f"{len(comp)} new complaint{'s' if len(comp) > 1 else ''} {when}: “{str(comp.text.iloc[0])[:70]}”", go="inbox"))
+    cw = w[w.post_type == CREATOR_POST]
+    if len(cw):
+        top = cw.channel.value_counts()
+        out.append(dict(icon="🎬", tone="cool", text=f"{top.index[0]}'s videos drew {int(top.iloc[0])} buyer questions {when}. A partnership lead.", go="content"))
+    if len(own):
+        un = int((~own.answered).sum())
+        if un:
+            out.append(dict(icon="💤", tone="warm", text=f"{un} of {len(own)} buying questions on your own videos never got a reply.", go="inbox"))
+    return out
+
+
 def workspace(com, vids_all, picked, label, newest=None):
     c = com[com.brand.isin(picked)]
     cust = c[~c.owner_reply]
@@ -221,8 +292,8 @@ def workspace(com, vids_all, picked, label, newest=None):
         top_level=int(len(top)), buying=int(len(buy_q)), waiting=int(len(waiting)),
         own_q=int(len(own)), own_answered=int(own.answered.sum()),
         creator_q=int((buy_q.post_type == CREATOR_POST).sum()),
-        new_buyers=int((buy_q.first_seen == newest).sum()) if newest else 0,
-        new_comments=int((cust.first_seen == newest).sum()) if newest else 0,
+        new_buyers=int(buy_q.is_new.sum()),
+        new_comments=int(cust.is_new.sum()),
         cities=cities(cust)[:6], asks=asks, trend=trend,
         recent=int((d >= cut).sum()), older=int((d < cut).sum()),
         segments=segs, stats=stats, post_more=[card(r) for r in cg.head(3).itertuples()],
@@ -230,6 +301,7 @@ def workspace(com, vids_all, picked, label, newest=None):
         standouts=[dict(title=r.title, url=r.url, brand=r.brand, channel=r.channel, views=int(r.views),
                         why=r.unusual_because.split(";")[0]) for r in u.itertuples()],
         campaigns=campaigns(cust, vids, picked, label, int(len(waiting)), buy_q),
+        alerts=alerts(cust, buy_q, own, run_info()["run_date"], newest),
     )
 
 
@@ -248,16 +320,19 @@ def main():
     inbox_items = [dict(id=i, brand=r.brand, ask=ASK.get(r.need, "Other"), need=r.need, text=str(r.text)[:500], date=r.published,
                         where="Your video" if r.post_type == BRAND_POST else f"Creator · {r.channel}",
                         own=r.post_type == BRAND_POST, url=r.url, likes=int(r.likes), lang=r.lang,
-                        new=bool(newest and r.first_seen == newest))
+                        new=bool(r.is_new))
                    for i, r in enumerate(inbox.itertuples())]
 
+    health = health_scores(cust, brands)
+    for k, sp in spaces.items():
+        sp["health"] = {b: health[b] for b in sp["brands"]}
     comp = []
     for b in brands:
         s = cust[cust.brand == b]
         t = s[~s.is_reply]
         own = t[(t.intent == "high") & (t.post_type == BRAND_POST)]
         buy = s[s.need.isin(ASK) & (s.need != "complaint")].need.map(ASK).value_counts()
-        comp.append(dict(brand=b, comments=int(len(s)), buying=round(float((t.intent == "high").mean()), 3),
+        comp.append(dict(brand=b, health=health[b]["score"], comments=int(len(s)), buying=round(float((t.intent == "high").mean()), 3),
                          top=buy.index[0] if len(buy) else "–", own_q=int(len(own)), own_answered=int(own.answered.sum()),
                          fans=round(float(s.need.isin(["praise_product", "general_praise"]).mean()), 3),
                          complaints=round(float((s.need == "complaint").mean()), 4), buzz=round(float((s.need == "nostalgia_ad").mean()), 3),

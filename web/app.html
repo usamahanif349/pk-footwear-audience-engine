@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Joota Pulse · App</title>
+<meta name="description" content="Joota Pulse workspace: leads, customer groups, brand health, alerts and campaign ideas from real YouTube comments about Pakistani footwear brands.">
+<meta name="theme-color" content="#0B0A1A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%237B6CFF'/%3E%3Cpath d='M12 36h11l5-15 8 26 6-16h10' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script>try{var t=JSON.parse(localStorage.getItem("jp_theme"));if(t)document.documentElement.setAttribute("data-theme",t);else if(matchMedia("(prefers-color-scheme: light)").matches)document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B7BFF"/><stop offset="1" stop-color="#FF7A59"/></linearGradient></defs></svg>
+<div class="shell">
+  <aside class="side">
+    <a class="logo" href="./" aria-label="Joota Pulse home page">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="url(#lg)"/><path d="M12 36h11l5-15 8 26 6-16h10" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Joota<b>Pulse</b></span>
+    </a>
+    <nav id="nav" aria-label="Main"></nav>
+    <div class="side-foot">
+      <div class="src"><span class="live-dot"></span>Live YouTube data</div>
+      <div class="src-sub" id="src-sub"></div>
+      <a href="./">← Back to the home page</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="top-left">
+        <a class="logo top-logo" href="./" aria-label="Joota Pulse home page">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="url(#lg)"/><path d="M12 36h11l5-15 8 26 6-16h10" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Joota<b>Pulse</b></span>
+        </a>
+        <div class="ws">
+          <label for="ws-select" class="sr">Workspace</label>
+          <span class="ws-av" id="ws-av">A</span>
+          <select id="ws-select"></select>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn ghost hide-sm" id="assume-btn" type="button" aria-expanded="false" aria-controls="assume">Assumptions</button>
+        <button class="icon-btn" id="theme" type="button" aria-label="Switch theme"></button>
+        <a class="btn primary hide-sm" href="#report">Client report</a>
+      </div>
+      <div class="assume" id="assume" hidden>
+        <label>Average pair price (Rs)<input type="number" id="price" min="500" max="30000" step="500" value="4500"></label>
+        <label>Askers who'd buy if answered (%)<input type="number" id="conv" min="1" max="50" step="1" value="10"></label>
+        <p>Used for the missed-sales estimate only.</p>
+      </div>
+    </header>
+    <main id="view" tabindex="-1"><div class="panel"><p class="note">Loading live data…</p></div></main>
+  </div>
+</div>
+<nav class="tabbar" id="tabbar" aria-label="Main (mobile)"></nav>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

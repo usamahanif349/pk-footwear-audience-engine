@@ -1,54 +1,146 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Joota Pulse · Audience intelligence for Pakistani footwear brands</title>
-<meta name="description" content="Find the buyers your brand is ignoring. Joota Pulse reads real YouTube comments about Pakistani footwear brands and turns them into leads, customer groups and ready-to-run campaigns.">
-<meta property="og:title" content="Joota Pulse: the buyers your brand is ignoring">
-<meta property="og:description" content="Real comments, real buyers, ready replies. Audience intelligence for Pakistani footwear brands.">
+<meta name="description" content="Your customers are asking to buy in YouTube comments. Joota Pulse finds them every week, scores your brand against competitors and hands your team ready replies and campaigns.">
+<meta property="og:title" content="Joota Pulse: your customers are asking to buy. Nobody is answering.">
+<meta property="og:description" content="Live audience intelligence for Pakistani footwear brands, built on real YouTube comments.">
+<meta property="og:image" content="preview.jpg">
+<meta name="theme-color" content="#0B0A1A">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%237B6CFF'/%3E%3Cpath d='M12 36h11l5-15 8 26 6-16h10' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script>try{var t=JSON.parse(localStorage.getItem("jp_theme"));if(t)document.documentElement.setAttribute("data-theme",t);else if(matchMedia("(prefers-color-scheme: light)").matches)document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="shell">
-  <aside class="side">
-    <a class="logo" href="#today" aria-label="Joota Pulse home">
-      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="url(#lg)"/><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B7BFF"/><stop offset="1" stop-color="#FF7A59"/></linearGradient></defs><path d="M12 36h11l5-15 8 26 6-16h10" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B7BFF"/><stop offset="1" stop-color="#FF7A59"/></linearGradient></defs></svg>
+
+<header class="lp-nav">
+  <div class="lp">
+    <a class="logo" href="./" aria-label="Joota Pulse home">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="url(#lg)"/><path d="M12 36h11l5-15 8 26 6-16h10" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Joota<b>Pulse</b></span>
     </a>
-    <nav id="nav" aria-label="Main"></nav>
-    <div class="side-foot">
-      <div class="src"><span class="live-dot"></span>Real YouTube data</div>
-      <div class="src-sub" id="src-sub"></div>
+    <nav aria-label="Sections"><a href="#how">How it works</a><a href="#features">Features</a><a href="#brands">Brands</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav>
+    <div class="right">
+      <button class="icon-btn" id="theme" type="button" aria-label="Switch theme"></button>
+      <a class="btn ghost" href="app.html">Open the app</a>
+      <a class="btn primary" data-audit href="#">Book a free audit</a>
     </div>
-  </aside>
-
-  <div class="main">
-    <header class="topbar">
-      <div class="ws">
-        <label for="ws-select" class="sr">Workspace</label>
-        <span class="ws-av" id="ws-av">A</span>
-        <select id="ws-select"></select>
-      </div>
-      <div class="top-actions">
-        <button class="btn ghost" id="assume-btn" type="button" aria-expanded="false">Assumptions</button>
-        <a class="btn primary" href="#report">Client report</a>
-      </div>
-      <div class="assume" id="assume" hidden>
-        <label>Average pair price (Rs)<input type="number" id="price" min="500" max="30000" step="500" value="4500"></label>
-        <label>Askers who'd buy if answered (%)<input type="number" id="conv" min="1" max="50" step="1" value="10"></label>
-        <p>Used for the missed-sales estimate only.</p>
-      </div>
-    </header>
-    <main id="view" tabindex="-1"></main>
   </div>
-</div>
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="app.js"></script>
+</header>
+
+<main>
+<section class="lp lp-hero">
+  <span class="eyebrow"><span class="live-dot"></span><span data-k="eyebrow">Live YouTube data, refreshed every week</span></span>
+  <h1>Your customers are asking to buy. <span class="grad">Nobody is answering.</span></h1>
+  <p class="lede">Every week Joota Pulse reads thousands of real YouTube comments about Pakistani footwear brands, finds the people asking for prices, sizes and delivery, and hands your team the reply, the customer group and the next campaign.</p>
+  <div class="cta"><a class="btn coral lg" href="#brands">See your brand's leads</a><a class="btn ghost lg" href="app.html">Open the live app</a></div>
+  <p class="small">Free to try · real public data · no sign-up</p>
+  <div class="shot"><div class="frame"><div class="dots"><i></i><i></i><i></i></div><img src="shots/today.jpg" alt="Joota Pulse Today screen: missed sales, waiting buyers, brand health score and alerts" width="1440" height="900"></div></div>
+  <div class="proof-strip">
+    <div><b data-k="comments">–</b><span>real comments analysed</span></div>
+    <div class="hot"><b data-k="waiting">–</b><span>buyers still waiting for a reply</span></div>
+    <div><b data-k="money">–</b><span>missed sales (estimate)</span></div>
+    <div><b data-k="brands">8</b><span>brands tracked, updated weekly</span></div>
+  </div>
+</section>
+
+<section class="lp sec">
+  <div class="insight">
+    <div>
+      <div class="big" data-k="ratio">–</div>
+      <h3>That's how many buying questions brands answered on their own YouTube videos.</h3>
+      <p>Shoppers ask "price kya hai?", "Lahore mein kahan milega?" and "COD hai?" every day. Almost every one goes unanswered, and most of them sit under creators' videos where brands never look.</p>
+    </div>
+    <div class="facts">
+      <div class="fact"><b data-k="creatorq">–</b><span>buying questions under creator videos, where the brand never replies</span></div>
+      <div class="fact"><b data-k="cmratio">–</b><span>more comments per view on creator videos than on brand videos</span></div>
+      <div class="fact"><b data-k="city">–</b><span data-k="citytxt">is the city shoppers ask about most</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="lp sec" id="how">
+  <div class="sec-h"><small>HOW IT WORKS</small><h2>From comment to customer in three steps</h2><p>No setup for your team. We watch YouTube for you and send what matters.</p></div>
+  <div class="steps3">
+    <div class="step3"><div class="n">1</div><h3>Listen</h3><p>Every Monday we collect fresh comments from brand channels and creators' sale vlogs and reviews, using the official YouTube Data API.</p></div>
+    <div class="step3"><div class="n">2</div><h3>Understand</h3><p>A multilingual AI model reads English, Roman Urdu and Urdu, and tags each comment: price, stock, size, delivery, complaint or praise.</p></div>
+    <div class="step3"><div class="n">3</div><h3>Act</h3><p>Your team gets a leads inbox with ready replies, customer groups, a brand health score, alerts and campaigns with ad copy.</p></div>
+  </div>
+</section>
+
+<section class="lp sec" id="features">
+  <div class="sec-h"><small>FEATURES</small><h2>Everything a marketing team needs, on one screen</h2></div>
+  <div class="feat">
+    <div class="txt"><small>LEADS INBOX</small><h3>Answer buyers before they buy from someone else</h3><p>Every unanswered buying question, from your videos and creators' videos, in one inbox. Filter by type, copy a ready reply, paste it on YouTube.</p>
+      <ul><li>Replies in Roman Urdu and English</li><li>"New" tag on questions posted since the last update</li><li>Export to CSV for your sales team</li></ul></div>
+    <div class="pic"><img src="shots/inbox.jpg" alt="Leads inbox with suggested reply" loading="lazy" width="1440" height="900"></div>
+  </div>
+  <div class="feat rev">
+    <div class="txt"><small>BRAND HEALTH AND COMPETITORS</small><h3>Know where you stand against seven competitors</h3><p>A 0–100 health score from buying interest, complaints and fans, ranked against every tracked brand. See what each brand's customers ask about.</p>
+      <ul><li>Weekly scorecard of all 8 brands</li><li>Reply rate shown next to the score</li><li>The method is explained in the app</li></ul></div>
+    <div class="pic"><img src="shots/competitors.jpg" alt="Competitor scorecard ranked by brand health" loading="lazy" width="1440" height="900"></div>
+  </div>
+  <div class="feat">
+    <div class="txt"><small>CUSTOMER GROUPS</small><h3>Talk to price checkers differently from fans</h3><p>Everyone who commented is placed in one group, such as price checkers, where-can-I-buy askers, deal hunters or unhappy customers, with their own words and what to do next.</p>
+      <ul><li>Ready-to-buy groups highlighted</li><li>Real quotes from each group</li><li>The cities shoppers name most</li></ul></div>
+    <div class="pic"><img src="shots/customers.jpg" alt="Customer groups" loading="lazy" width="1440" height="900"></div>
+  </div>
+  <div class="feat rev">
+    <div class="txt"><small>DIGEST AND CLIENT REPORT</small><h3>A Monday email your boss will actually read</h3><p>A weekly digest with alerts, the buyers to answer first and three actions, plus a one-page client report you can download as a PDF.</p>
+      <ul><li>Alerts for waiting buyers, complaints and creator leads</li><li>Campaign ideas with ad copy in two languages</li><li>One click to a PDF report</li></ul></div>
+    <div class="pic"><img src="shots/digest.jpg" alt="Weekly digest email preview" loading="lazy" width="1440" height="900"></div>
+  </div>
+</section>
+
+<section class="lp sec" id="brands">
+  <div class="sec-h"><small>LIVE RESULTS</small><h2>Pick your brand and see its buyers right now</h2><p>These numbers come from this week's data. Click a brand to open its workspace.</p></div>
+  <div class="bproof" id="bproof"></div>
+</section>
+
+<section class="lp sec" id="pricing">
+  <div class="sec-h"><small>PRICING</small><h2>Simple plans for brands and agencies</h2></div>
+  <div class="pricing">
+    <div class="plan"><h3>Snapshot</h3><div class="for">See what you're missing</div><div class="price">Rs 0</div>
+      <ul><li>Live workspace for one brand</li><li>Leads inbox and ready replies</li><li>Brand health score</li><li>One client report</li></ul><a class="btn ghost" href="app.html">Start free</a></div>
+    <div class="plan pop"><h3>Growth</h3><div class="for">For one brand's marketing team</div><div class="price">Rs 25,000<small> / month</small></div>
+      <ul><li>Everything in Snapshot</li><li>Weekly digest email every Monday</li><li>Alerts for new buyers and complaints</li><li>Competitor scorecard</li><li>Campaign ideas with ad copy</li></ul><a class="btn primary" data-audit href="#">Book a free audit</a></div>
+    <div class="plan"><h3>Agency</h3><div class="for">For agencies with several brands</div><div class="price">Rs 60,000<small> / month</small></div>
+      <ul><li>Everything in Growth</li><li>All brands in one agency view</li><li>Client reports for every brand</li><li>Creator partnership leads</li><li>Lead export to CSV</li></ul><a class="btn ghost" data-audit href="#">Talk to us</a></div>
+  </div>
+  <p class="price-note">Example pricing. Joota Pulse is a university project and not yet a commercial service.</p>
+</section>
+
+<section class="lp sec" id="faq">
+  <div class="sec-h"><small>FAQ</small><h2>Questions brands ask</h2></div>
+  <div class="faq">
+    <details><summary>Where does the data come from?</summary><p>Public YouTube comments, collected through the official YouTube Data API: brand channels plus creators' sale vlogs, hauls and reviews. Instagram, TikTok and Facebook aren't included because their terms don't allow this kind of collection.</p></details>
+    <details><summary>How fresh is it?</summary><p>An automatic job runs every Monday: it collects new comments, re-runs the analysis and republishes the site. The date at the top of the app shows the latest update.</p></details>
+    <details><summary>How is "missed sales" calculated?</summary><p>Unanswered buying questions × the share who'd buy if answered × the average pair price. The defaults are 10% and Rs 4,500, and you can change both under Assumptions in the app. It's an estimate, not a measured figure.</p></details>
+    <details><summary>Can it read Roman Urdu?</summary><p>Yes. Word lists in English, Roman Urdu and Urdu tag clear cases, and a multilingual AI embedding model tags similar comments the lists miss. Spelling varies a lot, so a small share stays unlabelled; the app says how many.</p></details>
+    <details><summary>What about privacy?</summary><p>Commenter names are never stored. Phone numbers, e-mails, @handles and order numbers are removed before analysis.</p></details>
+    <details><summary>Are you working with these brands?</summary><p>No. Joota Pulse is an independent university project. Brand names are used only to describe public comments about them.</p></details>
+  </div>
+</section>
+
+<section class="lp">
+  <div class="final">
+    <h2>Find out what your customers asked this week</h2>
+    <p>We'll walk your team through your brand's leads, health score and the three things to do first. It takes 20 minutes.</p>
+    <div class="cta"><a class="btn coral lg" data-audit href="#">Book a free audit</a><a class="btn ghost lg" href="app.html">Open the live app</a></div>
+  </div>
+</section>
+</main>
+
+<footer class="lp-foot"><div class="lp">
+  <span>© 2026 Joota Pulse · a Big Data Analytics project by Usama Hanif. Not affiliated with any brand shown.</span>
+  <span><a href="app.html#how">Method</a><a href="https://github.com/usamahanif349/pk-footwear-audience-engine" target="_blank" rel="noopener">Code</a><a href="https://pk-footwear-audience-engine.streamlit.app" target="_blank" rel="noopener">Analyst version</a><a href="https://www.linkedin.com/in/usama-hanif-ai/" target="_blank" rel="noopener">LinkedIn</a></span>
+</div></footer>
+<script src="site.js"></script>
 </body>
 </html>
