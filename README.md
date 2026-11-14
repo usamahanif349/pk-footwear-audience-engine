@@ -2,7 +2,7 @@
 
 **Project 3, Big Data Analytics (UMT Lahore)** · Usama Hanif · *Pakistan Social Audience & Campaign Intelligence Engine*
 
-A marketing web app that reads **6,724 real YouTube comments** on **690 videos** about **8 Pakistani footwear brands**, groups them into audience needs and audience groups, flags unusual posts and turns the findings into a marketing action plan, with replies the team can paste.
+A marketing web app built on **real YouTube comments** (the original 12 Nov 2026 snapshot: **6,724 comments** on **690 videos** about **8 Pakistani footwear brands**; the live site now refreshes itself every Monday), groups them into audience needs and audience groups, flags unusual posts and turns the findings into a marketing action plan, with replies the team can paste.
 
 Borjan, Servis and Ndure are the core brands, the same three as in [Project 1](https://github.com/usamahanif349/pk-footwear-sentiment-analysis) and [Project 2](https://github.com/usamahanif349/pk-footwear-budget-optimizer). Stylo, Metro, Hush Puppies, Insignia and ECS widen the audience.
 
@@ -12,14 +12,16 @@ Borjan, Servis and Ndure are the core brands, the same three as in [Project 1](h
 
 | Page | What it does |
 |---|---|
-| **Today** | Missed sales estimate, buying questions, reply rate, hottest city, and the 3 things to do today |
+| **Today** | Missed sales estimate, brand health score, alerts, waiting buyers and the 3 things to do today |
 | **Leads inbox** | Every unanswered buying question in one list; click one and get a ready reply in Roman Urdu or English |
-| **Your customers** | 11 customer groups (Where-can-I-buy askers, Price checkers, Deal hunters…) with what to do for each |
-| **Post this, not that** | Content that starts conversations vs content that doesn't, plus a creator leaderboard |
-| **Competitors** | Brand scorecard: buying questions, top ask, replies, complaints, ad buzz for all 8 brands |
-| **Campaign ideas** | Ready-to-run campaigns, each with the number behind it and ad copy in English and Roman Urdu |
-| **Client report** | One-click 1-page PDF for a brand |
+| **Your customers** | Customer groups (Where-can-I-buy askers, Price checkers, Deal hunters…) with what to do for each |
+| **Competitors** | Brand scorecard ranked by health: buying questions, top ask, replies, fans, complaints for all 8 brands |
+| **Campaigns & creators** | Ready-to-run campaigns with ad copy, what to post, and a creator leaderboard |
+| **Weekly digest** | The Monday e-mail with alerts, buyers to answer first and 3 actions |
+| **Client report & audit page** | One-page PDF and a personal audit page per brand (`audit.html?brand=…`) |
 | **How it works** | Method, accuracy checks, Big Data benchmark, data, privacy and limitations |
+
+Accuracy rule in the app: a city, group or campaign figure is shown only when at least 5 comments back it.
 
 ## The headline
 
