@@ -231,7 +231,9 @@ def video_details(yt, budget, found, today):
                              content_type="", duration_s=secs, views=int(st.get("viewCount", 0)),
                              likes=int(st.get("likeCount", 0)), comments=int(st.get("commentCount", 0)),
                              url="https://www.youtube.com/watch?v=" + v["id"], collected_on=today))
-    vids = pd.DataFrame(rows)
+    cols = ["video_id", "brand", "source", "title", "channel", "channel_id", "published", "format", "content_type",
+            "duration_s", "views", "likes", "comments", "url", "collected_on"]
+    vids = pd.DataFrame(rows, columns=cols)
     ch_ids, country = vids.channel_id.unique().tolist(), {}
     for i in range(0, len(ch_ids), 50):
         try:
