@@ -948,3 +948,20 @@ kbd { font: 600 .72rem var(--body); padding: 2px 6px; border-radius: 6px; backgr
 .case-wait { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line-2); color: var(--rose); font-weight: 700; font-size: .9rem; }
 .case-wait i { width: 9px; height: 9px; border-radius: 50%; background: var(--rose); box-shadow: 0 0 0 4px color-mix(in srgb, var(--rose) 20%, transparent); animation: blink 1.6s infinite; }
 @media (max-width: 900px) { .case { grid-template-columns: 1fr; padding: 26px 20px; } .case-q { transform: none; } }
+/* posts that stood out (brief question 3) */
+.stand { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.st { display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--s1); text-decoration: none; color: var(--text); transition: border-color .2s, transform .2s; }
+.st:hover { border-color: var(--violet); transform: translateY(-2px); }
+.st .tag { align-self: flex-start; } .st .tag svg { width: 12px; height: 12px; margin-right: 4px; vertical-align: -2px; }
+.st b { font-size: .92rem; line-height: 1.35; }
+.st .s { font-size: .78rem; color: var(--dim); }
+.st .w { font-size: .84rem; color: var(--muted); margin-top: auto; }
+.st.check { border-color: color-mix(in srgb, var(--rose) 30%, transparent); }
+@media (max-width: 900px) { .stand { grid-template-columns: 1fr; } }
+.brief { display: grid; gap: 8px; }
+.bq { display: grid; grid-template-columns: 30px 1fr auto; gap: 14px; align-items: center; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); text-decoration: none; color: var(--text); }
+.bq:hover { border-color: var(--violet); background: var(--violet-soft); }
+.bq i { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: 800 .85rem var(--display); font-style: normal; color: #fff; background: linear-gradient(135deg, var(--violet-2), var(--coral)); }
+.bq b { display: block; } .bq span { font-size: .84rem; color: var(--muted); }
+.bq em { font-style: normal; font-size: .82rem; font-weight: 700; color: var(--violet); white-space: nowrap; }
+@media (max-width: 820px) { .bq { grid-template-columns: 30px 1fr; } .bq em { grid-column: 2; } }

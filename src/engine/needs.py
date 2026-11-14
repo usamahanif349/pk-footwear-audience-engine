@@ -140,6 +140,10 @@ def main():
     com, m1 = label(com, X)
     disc, clusters, m2 = discover(com, X)
     com = com.merge(disc[["comment_id", "cluster"]], on="comment_id", how="left")
+    # Table B of the brief asks for a sentiment column: derived from the topic (praise = positive,
+    # complaint = negative, everything else = neutral). The project's focus is needs, not sentiment.
+    com["sentiment"] = np.where(com.need.isin(["praise_product", "praise_content", "general_praise"]), "Positive",
+                                np.where(com.need == "complaint", "Negative", "Neutral"))
     com.to_csv(OUT / "comments_labeled.csv", index=False)
     disc.to_csv(OUT / "cluster_map.csv", index=False)
     clusters.to_csv(OUT / "clusters.csv", index=False)

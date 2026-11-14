@@ -328,13 +328,18 @@
     const item = (c, good) => `<div class="pl"><i class="hic ${good ? "ok" : "bad"}">${svg(good ? "up" : "down")}</i><div><b>${esc(c.type)}</b><span>${esc(c.format)}</span></div>
       <em>${good ? `${pct(c.hi)} of comments are buyers` : "views, little conversation"}</em></div>`;
     return `<div class="page-h" style="margin-top:40px"><div><h1>Content and creators</h1><p>What gets shoppers talking and asking to buy, and the creators who already bring them in.</p></div></div>
-      ${st ? `<div class="insight-card"><div class="v">${Math.round(st.cm_ratio)}×</div><p><b>Creator videos start ${Math.round(st.cm_ratio)}× more conversation than brand videos.</b> Brand videos get the views, mostly paid reach, but shoppers ask their questions under creators' sale vlogs and reviews. Work with the creators below.</p></div>` : ""}
+      ${st ? `<div class="insight-card"><div class="v">${Math.round(st.cm_ratio)}×</div><p><b>Creator videos start ${Math.round(st.cm_ratio)}× more conversation than brand videos.</b> Brand videos get the views, mostly paid reach, but shoppers ask their questions under creators' sale vlogs and reviews${D.posts && D.posts.brand_silent ? `, and ${pct(D.posts.brand_silent)} of the brands' own ${fmt(D.posts.brand_posts)} videos got no comments at all` : ""}. Work with the creators below.</p></div>` : ""}
       <div class="grid">
         <section class="panel s6"><div class="panel-h"><h2><i class="hic ok">${svg("up")}</i>Post more of this</h2></div>${w.post_more.map(c => item(c, true)).join("") || '<p class="note">Not enough videos yet.</p>'}</section>
         <section class="panel s6"><div class="panel-h"><h2><i class="hic bad">${svg("down")}</i>Less of this</h2></div>${w.post_less.filter(c => !w.post_more.some(m => m.type === c.type && m.format === c.format)).map(c => item(c, false)).join("") || '<p class="note">Not enough videos yet.</p>'}</section>
         <section class="panel s12"><div class="panel-h"><h2>Creators already selling for you</h2><span>buyers asking on their videos</span></div>
           ${w.leads.slice(0, 6).map((l, i) => `<div class="lead"><span class="rk ${i < 3 ? "top" : ""}">${i + 1}</span>${avatar(l.channel, true)}<div><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(String(l.channel).trim())}</a><div class="sub">${esc(l.brands)}</div></div><div class="n">${l.buyers}<small>buyers asked</small></div></div>`).join("") || '<p class="note">No creator videos for this brand yet.</p>'}
           ${w.leads.length ? '<div class="row-btns"><button class="btn primary sm" id="pitch" type="button">Copy a partnership message</button></div>' : ""}</section>
+        ${w.standouts.length ? `<section class="panel s12"><div class="panel-h"><h2>Posts that stood out</h2><span>far ahead of, or far behind, similar posts</span></div>
+          <div class="stand">${w.standouts.map(x => `<a class="st ${x.kind}" href="${esc(x.url)}" target="_blank" rel="noopener">
+            <span class="tag ${x.kind === "learn" ? "ok" : "bad"}">${x.kind === "learn" ? `${svg("up")}Learn from this` : `${svg("alert")}Check this`}</span>
+            <b>${esc(x.title.slice(0, 90))}</b><span class="s">${esc(x.brand)} · ${esc(String(x.channel).trim())} · ${fmt(x.views)} views</span>
+            <span class="w">${esc(x.why.charAt(0).toUpperCase() + x.why.slice(1))}</span></a>`).join("")}</div></section>` : ""}
       </div>`;
   }
   function wireContent() {
@@ -436,6 +441,16 @@
     const h = D.how, m = h.metrics;
     return `<div class="fade">${header("How it works", "The engine behind the app: real data, a multilingual AI model and checks on every step.")}
       <div class="grid">
+        <section class="panel s12"><div class="panel-h"><h2>The five questions in the project brief</h2><span>and where each is answered</span></div>
+          <div class="brief">
+            ${[["1", "Which content attracts attention?", "campaigns", "Ideas → Content and creators", "Content types compared on views, likes and comments" + (D.posts ? ` across ${fmt(D.posts.total)} posts` : "")],
+               ["2", "What does the audience want?", "inbox", "Buyers to answer", "Every comment grouped by need: price, quality, size, delivery, discounts, availability, purchase interest"],
+               ["3", "Which marketing patterns are unusual?", "campaigns", "Ideas → Posts that stood out", "Peer z-scores against similar posts, with an Isolation Forest as a second opinion"],
+               ["4", "Which audience needs should the brand address?", "customers", "Your customers", "Customer groups: deal hunters, delivery-concerned shoppers, where-can-I-buy askers and more"],
+               ["5", "What should the marketing team do next?", "today", "Home → Your 3 to-dos, and Ideas", "Content, promotions, ready customer-service replies and campaigns to test"]]
+              .map(([n, q, go, where, how]) => `<a class="bq" href="#${go}"><i>${n}</i><div><b>${q}</b><span>${how}</span></div><em>${where} →</em></a>`).join("")}
+          </div>
+          <p class="note" style="margin-top:10px">Data: Table A, ${D.posts ? fmt(D.posts.total) : "–"} public posts (${D.posts ? fmt(D.posts.with_comments) : "–"} with comments); Table B, ${fmt(h.comments)} cleaned comments with language, topic, sentiment and purchase intent. All real, collected through the official YouTube Data API; shares are not available from YouTube.</p></section>
         <section class="panel s6"><div class="panel-h"><h2>The pipeline</h2></div><div class="steps">
           <div class="step"><div><b>Collect</b><span>Official YouTube Data API, every week: brand channels plus creators' sale vlogs and reviews. Latest run (${esc(D.date)}): ${fmt(D.pipeline.videos_kept)} videos and ${fmt(D.pipeline.comments_raw)} comments collected.</span></div></div>
           <div class="step"><div><b>Clean</b><span>Keep videos that name the brand; drop Indian and foreign videos (Bata's channel is Bata India, so Bata is out), foreign-language and empty comments. ${fmt(h.comments)} comments on ${fmt(h.videos)} videos about ${D.brands.length} brands remain.</span></div></div>

@@ -290,7 +290,8 @@ def workspace(com, vids_all, picked, label, newest=None):
     card = lambda r: dict(type=r.content_type, format=r.format, cm=round(float(r.cm), 2), hi=round(float(r.hi), 3),
                           views=int(r.views), n=int(r.n))
     unusual = pd.read_csv(PROC / "unusual_posts.csv")
-    u = unusual[unusual.brand.isin(picked) & unusual.what_to_do.str.startswith("Learn")].head(6)
+    mine = unusual[unusual.brand.isin(picked)]
+    u = pd.concat([mine[mine.what_to_do.str.startswith("Learn")].head(4), mine[mine.what_to_do.str.startswith("Investigate")].head(2)])
 
     return dict(
         label=label, brands=picked,
@@ -306,7 +307,8 @@ def workspace(com, vids_all, picked, label, newest=None):
         # "less of this" never repeats a "post more" item (small brands have only a few content groups)
         post_less=[card(r) for r in cg.iloc[min(3, len(cg)):].tail(3).iloc[::-1].itertuples()], leads=leads(cust),
         standouts=[dict(title=r.title, url=r.url, brand=r.brand, channel=r.channel, views=int(r.views),
-                        why=r.unusual_because.split(";")[0]) for r in u.itertuples()],
+                        why=r.unusual_because.split(";")[0], kind="learn" if r.what_to_do.startswith("Learn") else "check")
+                   for r in u.itertuples()],
         campaigns=campaigns(cust, vids, picked, label, int(len(waiting)), buy_q),
         alerts=alerts(cust, buy_q, own, run_info()["run_date"], newest),
     )
@@ -365,11 +367,20 @@ def main():
         bench = b.astype(object).where(b.notna(), None).to_dict("records")   # NaN is not valid JSON
 
     info = run_info()
+    posts = None
+    if (PROC / "table_a_posts.csv").exists():   # Table A: every relevant post, with or without comments
+        a = pd.read_csv(PROC / "table_a_posts.csv")
+        # all collected posts count for Table A, including brands not shown yet (too few comments)
+        own_posts = a[a.post_type == BRAND_POST]
+        posts = dict(total=int(len(a)), with_comments=int((a.comments_count > 0).sum()), brand_posts=int(len(own_posts)),
+                     brand_silent=round(float((own_posts.comments_count == 0).mean()), 3) if len(own_posts) else None,
+                     campaigns=int((a.campaign != "No campaign named").sum()))
     limits = dict(size_q=int((cust.need == "size_fit").sum()), complaints=int((cust.need == "complaint").sum()),
                   unlabelled=round(float((cust.need == "other").mean()), 3))
     data = dict(
         date=info["label"], updated=info["run_date"], pipeline=info, limits=limits, history=[], brands=brands, spaces=spaces, inbox=inbox_items,
         replies={k: v for k, v in REPLIES.items()}, competitors=comp,
+        posts=posts,
         how=dict(metrics=metrics, comments=int(len(com)), customer_comments=int(len(cust)), videos=int(len(vids)),
                  points=[dict(x=round(float(r.x), 3), y=round(float(r.y), 3), g=names.get(r.cluster, "Other"), t=str(r.text)[:70])
                          for r in pts.itertuples()], benchmark=bench),

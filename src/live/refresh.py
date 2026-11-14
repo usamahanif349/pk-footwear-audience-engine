@@ -43,7 +43,7 @@ def embed(com):
 
 
 def run_engine():
-    for step in ["needs", "content", "segments"]:
+    for step in ["needs", "content", "segments", "posts"]:
         print(f"--- {step}", flush=True)
         runpy.run_path(str(ROOT / "src" / "engine" / f"{step}.py"), run_name="__main__")
 

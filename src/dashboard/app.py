@@ -285,10 +285,14 @@ def load():
     clusters = pd.read_csv(src("clusters.csv"))
     cmap = pd.read_csv(src("cluster_map.csv"))
     bench = pd.read_csv(PROC / "benchmark.csv") if (PROC / "benchmark.csv").exists() else None  # one-off Colab benchmark
-    return com, vids, unusual, metrics, clusters, cmap, bench, stats
+    try:
+        posts = pd.read_csv(src("table_a_posts.csv"))
+    except Exception:
+        posts = pd.read_csv(PROC / "table_a_posts.csv") if (PROC / "table_a_posts.csv").exists() else None
+    return com, vids, unusual, metrics, clusters, cmap, bench, stats, posts
 
 
-COM, VIDS, UNUSUAL, METRICS, CLUSTERS, CMAP, BENCH, RUN = load()
+COM, VIDS, UNUSUAL, METRICS, CLUSTERS, CMAP, BENCH, RUN, POSTS = load()
 if RUN and RUN.get("run_date"):
     DATA_DATE = pd.Timestamp(RUN["run_date"]).strftime("%-d %b %Y")
 RUN_STATS = {**SNAPSHOT_STATS, **(RUN or {})}
@@ -778,9 +782,16 @@ def page_how():
             "@handles and order numbers are removed from the text.\n"
             "- **Every video keeps its link and collection date** (Table A); every comment keeps its video, language, topic and "
             "purchase intent (Table B).")
-        ta = VIDS[["video_id", "brand", "platform", "content_type", "format", "post_type", "title", "views", "likes", "comments",
-                   "published", "url", "collected_on"]]
-        tb = COM[["video_id", "comment_id", "brand", "text", "lang", "need_label", "intent", "published", "collected_on"]]
+        ta = POSTS if POSTS is not None else VIDS[["video_id", "brand", "platform", "content_type", "format", "post_type", "title",
+                                                   "views", "likes", "comments", "published", "url", "collected_on"]]
+        tb = COM.rename(columns={"video_id": "post_id", "text": "comment_text", "lang": "language_type", "need_label": "topic",
+                                 "intent": "purchase_intent"})
+        tb = tb[["post_id", "comment_id", "brand", "comment_text", "language_type", "topic"]
+                + (["sentiment"] if "sentiment" in tb else []) + ["purchase_intent", "published", "collected_on"]]
+        st.markdown(f"**Table A: {len(ta):,} posts** (every relevant public post, with or without comments) · "
+                    f"**Table B: {len(tb):,} comments**")
+        st.dataframe(ta.head(200), use_container_width=True, hide_index=True, height=260)
+        st.dataframe(tb.head(200), use_container_width=True, hide_index=True, height=260)
         c1, c2 = st.columns(2)
         c1.download_button("Table A: posts (CSV)", ta.to_csv(index=False), "table_a_posts.csv", "text/csv", use_container_width=True)
         c2.download_button("Table B: comments (CSV)", tb.to_csv(index=False), "table_b_comments.csv", "text/csv", use_container_width=True)

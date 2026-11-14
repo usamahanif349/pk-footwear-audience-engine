@@ -324,7 +324,8 @@ def collect(api_key, known, state, limit=UNIT_LIMIT):
     com.to_csv(state / "comments_archive.csv.gz", index=False)
     vid_arch.to_csv(state / "videos_archive.csv.gz", index=False)
     vids, com, vids_clean, clean = build_tables(com, vid_arch)
-    stats = dict(videos_found=len(found), videos_kept=len(vids), comments_raw=len(com), comments_clean=len(clean),
+    vids = vid_arch.assign(comments=vid_arch.comments.abs())       # all posts found, for Table A
+    stats = dict(videos_found=len(found), videos_kept=len(vids_clean), comments_raw=len(com), comments_clean=len(clean),
                  new_comments=len(new), videos_fetched=len(done), units_used=budget.used)
     print("collect:", stats, flush=True)
     return vids, com, vids_clean, clean, stats
@@ -346,7 +347,8 @@ def from_archive(state):
     """Rebuild everything from the saved archives without calling YouTube (0 units)."""
     arch_com, arch_vid = load_archive(state)
     vids, com, vids_clean, clean = build_tables(arch_com, arch_vid)
-    stats = dict(videos_found=len(arch_vid), videos_kept=len(vids), comments_raw=len(com), comments_clean=len(clean),
+    vids = arch_vid.assign(comments=arch_vid.comments.abs())
+    stats = dict(videos_found=len(arch_vid), videos_kept=len(vids_clean), comments_raw=len(com), comments_clean=len(clean),
                  new_comments=0, videos_fetched=0, units_used=0)
     print("rebuilt from archive:", stats, flush=True)
     return vids, com, vids_clean, clean, stats
