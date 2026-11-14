@@ -106,8 +106,8 @@
   })();
 
   /* audit e-mail */
-  const audit = "mailto:usamahanif349@gmail.com?subject=" + encodeURIComponent("Joota Pulse: free audit for my brand")
-    + "&body=" + encodeURIComponent("Hi Usama,\n\nI'd like a free Joota Pulse audit.\n\nBrand:\nMy role:\nBest time to talk:\n\nThanks!");
+  const audit = "mailto:usamahanif349@gmail.com?subject=" + encodeURIComponent("Joota Pulse: free demo for my brand")
+    + "&body=" + encodeURIComponent("Hi Usama,\n\nI'd like a free Joota Pulse demo.\n\nBrand:\nMy role:\nBest time to talk:\n\nThanks!");
   $$("[data-audit]").forEach(a => a.href = audit);
 
   fetch("data.json", { cache: "no-cache" }).then(r => r.json()).then(D => {
