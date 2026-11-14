@@ -931,3 +931,20 @@ kbd { font: 600 .72rem var(--body); padding: 2px 6px; border-radius: 6px; backgr
 .ws-opt .tick { width: 16px; height: 16px; margin-left: auto; color: var(--violet); opacity: 0; }
 .ws-opt[aria-selected="true"] { background: var(--violet-soft); } .ws-opt[aria-selected="true"] .tick { opacity: 1; }
 @media (max-width: 820px) { .ws-btn .ws-name { max-width: 130px; } .ws-menu { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; } }
+/* real example */
+.case { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; padding: 40px; border-radius: var(--r-xl);
+  background: var(--s1); border: 1px solid var(--line); }
+:root[data-theme="light"] .case { background: #fff; box-shadow: 0 20px 50px rgba(20, 16, 60, .06); }
+.case-l small { color: var(--coral); font-weight: 700; font-size: .8rem; letter-spacing: .06em; }
+.case-l h2 { font: 800 clamp(1.5rem, 3vw, 2.2rem)/1.15 var(--display); letter-spacing: -.03em; margin-top: 10px; }
+.case-stats { display: flex; gap: 28px; flex-wrap: wrap; margin: 22px 0 24px; }
+.case-stats b { display: block; font: 800 1.6rem var(--display); letter-spacing: -.02em; }
+.case-stats span { font-size: .82rem; color: var(--muted); }
+.case-q { margin: 0; padding: 24px; border-radius: 20px; background: var(--s2); border: 1px solid var(--line-2); transform: rotate(1.2deg); box-shadow: 0 24px 60px rgba(20, 14, 70, .18); }
+.case-q .yt { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--dim); font-weight: 600; }
+.case-q .yt svg { width: 22px; height: 22px; }
+.case-q blockquote { margin: 14px 0 0; font: 700 1.35rem/1.35 var(--display); letter-spacing: -.01em; }
+.case-q figcaption { display: flex; gap: 10px; align-items: center; margin-top: 14px; font-size: .82rem; color: var(--dim); }
+.case-wait { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line-2); color: var(--rose); font-weight: 700; font-size: .9rem; }
+.case-wait i { width: 9px; height: 9px; border-radius: 50%; background: var(--rose); box-shadow: 0 0 0 4px color-mix(in srgb, var(--rose) 20%, transparent); animation: blink 1.6s infinite; }
+@media (max-width: 900px) { .case { grid-template-columns: 1fr; padding: 26px 20px; } .case-q { transform: none; } }

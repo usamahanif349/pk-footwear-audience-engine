@@ -71,14 +71,46 @@
     show(0);
   }
 
+  /* a real example: the brand with the most waiting buyers among those with enough questions on their
+     own videos, and its oldest clear buying question that is still unanswered */
+  function story(D) {
+    const NOT = /\d:\d\d|co ?-?ord|dress|suit|shirt|kurt|lawn|dupatta|lehenga|frock|trouser|jeans|bag|makeup|jewel|http|@/i;
+    const cands = D.brands.map(b => D.spaces[b]).filter(s => s.own_q >= 5).sort((x, y) => y.waiting - x.waiting);
+    const s = cands[0]; if (!s) return;
+    const b = s.brands[0], name = b.replace(" Pakistan", "");
+    const now = new Date(D.updated + "T00:00:00");
+    const qs = D.inbox.filter(m => m.brand === b && m.ask !== "Complaint" && m.text.length >= 15 && m.text.length <= 110 && /[a-z]{3}/i.test(m.text) && !NOT.test(m.text))
+      .filter(m => (now - new Date(m.date + "T00:00:00")) / 864e5 >= 14);
+    const pick = qs.find(m => m.own) || qs[0]; if (!pick) return;
+    const days = Math.round((now - new Date(pick.date + "T00:00:00")) / 864e5);
+    const age = days >= 60 ? `${Math.round(days / 30)} months` : `${Math.round(days / 7)} weeks`;
+    $("#case-h").textContent = `${name}: ${fmt(s.waiting)} shoppers are waiting for an answer. On ${name}'s own videos, ${s.own_answered === 0 ? `not one of ${s.own_q}` : `only ${s.own_answered} of ${s.own_q}`} buying questions got a reply.`;
+    $("#case-stats").innerHTML = `<div><b style="color:var(--coral)">${fmt(s.waiting)}</b><span>buyers waiting</span></div>
+      <div><b>${s.own_answered} of ${s.own_q}</b><span>answered on own videos</span></div><div><b>${money(s.waiting)}</b><span>missed sales (estimate)</span></div>`;
+    $("#case-cta").href = `audit.html?brand=${encodeURIComponent(b)}`;
+    $("#case-cta").textContent = `See ${name}'s full audit →`;
+    $("#case-where").textContent = pick.own ? `on ${name}'s own video` : `under a video about ${name}`;
+    $("#case-text").textContent = `“${pick.text}”`;
+    $("#case-tag").textContent = pick.ask;
+    $("#case-age").textContent = `posted ${new Date(pick.date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
+    $("#case-wait").textContent = `Still no reply after ${age}`;
+    $("#story").hidden = false;
+  }
+
+  /* screenshots: light WebP versions, JPEG if a WebP isn't there yet */
+  function loadImg(img, base) {
+    img.onerror = () => { img.onerror = null; img.src = base + ".jpg"; };
+    img.src = base + ".webp";
+  }
+
   /* theme */
   const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
   const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>';
   const setTheme = t => {
     document.documentElement.setAttribute("data-theme", t); $("#theme").innerHTML = t === "light" ? MOON : SUN;
     const dir = t === "light" ? "light" : "dark";
-    $$("[data-shot]").forEach(i => i.src = `shots/${dir}/${i.dataset.shot}.jpg`);
-    $$("[data-crop]").forEach(i => i.src = `shots/${dir}/crop-${i.dataset.crop}.jpg`);
+    $$("[data-shot]").forEach(i => { i.dataset.dir = dir; if (i.classList.contains("on") || i.getAttribute("src")) loadImg(i, `shots/${dir}/${i.dataset.shot}`); });
+    $$("[data-crop]").forEach(i => loadImg(i, `shots/${dir}/crop-${i.dataset.crop}`));
   };
   let theme = document.documentElement.getAttribute("data-theme") || "dark";
   setTheme(theme);
@@ -94,6 +126,7 @@
       i = k;
       tabs.forEach((t, n) => { t.classList.toggle("on", n === k); t.setAttribute("aria-selected", String(n === k)); t.classList.remove("run"); });
       imgs.forEach((im, n) => im.classList.toggle("on", n === k));
+      [k, (k + 1) % imgs.length].forEach(n => { const im = imgs[n]; if (!im.getAttribute("src")) loadImg(im, `shots/${im.dataset.dir || "dark"}/${im.dataset.shot}`); });
       if (!still && !paused) { void tabs[k].offsetWidth; tabs[k].classList.add("run"); }
     };
     let paused = false;
@@ -117,6 +150,7 @@
     $$('[data-k="waiting"]').forEach(el => el.closest(".proof-strip") ? countUp(el, a.waiting, n => fmt(Math.round(n))) : (el.textContent = fmt(a.waiting)));
     $$('[data-k="money"]').forEach(el => countUp(el, a.waiting, n => money(n)));
     demo(D);
+    story(D);
     set("brands", D.brands.length);
     set("ratio", `${a.own_answered} of ${a.own_q}`);
     set("creatorq", fmt(a.creator_q));
