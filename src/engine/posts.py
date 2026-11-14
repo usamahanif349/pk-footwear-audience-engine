@@ -86,9 +86,10 @@ def main():
         posts=("post_id", "size"), median_views=("views", "median"), median_likes_per_1k=("likes_per_1k", "median"),
         share_with_no_comments=("silent", "mean")).reset_index().sort_values(["post_type", "posts"], ascending=[True, False])
     q1.to_csv(OUT / "content_all_posts.csv", index=False)
-    print(f"Table A: {len(a):,} posts ({int((a.comments_count > 0).sum()):,} with comments) | "
-          f"campaigns named: {int((a.campaign != 'No campaign named').sum()):,} | "
-          f"brand posts with no comments: {a[a.post_type == "Brand's own post"].silent.mean():.0%}")
+    own = a[a.post_type == "Brand's own post"]
+    silent = own.silent.mean() if len(own) else 0
+    print("Table A: {:,} posts ({:,} with comments) | campaigns named: {:,} | brand posts with no comments: {:.0%}".format(
+        len(a), int((a.comments_count > 0).sum()), int((a.campaign != "No campaign named").sum()), silent))
 
 
 if __name__ == "__main__":
