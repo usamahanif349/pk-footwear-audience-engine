@@ -116,7 +116,7 @@ def campaigns(cust, vids, picked, label, waiting_n, buy_q):
                     why=f"{waiting_n:,} buying questions are waiting for a reply ({{MONEY}} in missed sales)."
                         + (f" On {'your' if len(picked) == 1 else 'the brands’'} own videos, {int(own.answered.sum())} of {len(own)} were answered."
                            if len(own) >= MIN_N else ""),
-                    do="Clear the Leads inbox every morning with the ready replies.",
+                    do="Answer every buyer on the list each morning with the ready replies.",
                     en="Got a question about price, size or delivery? Comment below and we'll reply within 24 hours. 💬",
                     ru="Price, size ya delivery ka sawal hai? Comment karein, hum 24 ghante mein jawab denge. 💬"))
     ld = leads(cust)

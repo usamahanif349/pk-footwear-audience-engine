@@ -60,14 +60,14 @@
   const alertIcon = a => svg(AICON[a.icon] || "bell");
   const svg = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[p]}</svg>`;
   const PAGES = [
-    { grp: "Workspace" },
-    { id: "today", label: "Today" }, { id: "inbox", label: "Leads inbox", count: true }, { id: "customers", label: "Your customers" },
-    { id: "competitors", label: "Competitors" }, { id: "campaigns", label: "Campaigns & creators" },
-    { grp: "Share" }, { id: "digest", label: "Weekly digest" }, { id: "report", label: "Client report" },
-    { grp: "About" }, { id: "settings", label: "Settings" }, { id: "how", label: "How it works" },
+    { grp: "Your brand" },
+    { id: "today", label: "Home" }, { id: "inbox", label: "Buyers to answer", count: true }, { id: "customers", label: "Your customers" },
+    { id: "competitors", label: "Competitors" }, { id: "campaigns", label: "Ideas" },
+    { grp: "Share" }, { id: "digest", label: "Monday email" }, { id: "report", label: "Report (PDF)" },
+    { id: "settings", label: "Settings", foot: true }, { id: "how", label: "How it works", foot: true },
   ];
   const TABS = ["today", "inbox", "customers", "campaigns", "report"];
-  const TAB_LABEL = { today: "Today", inbox: "Leads", customers: "Customers", campaigns: "Ideas", report: "Report" };
+  const TAB_LABEL = { today: "Home", inbox: "Buyers", customers: "Customers", campaigns: "Ideas", report: "Report" };
   const PALETTE = ["#7B6CFF", "#FF7A59", "#2BB98A", "#3D8BFF", "#E05BA8", "#C9922E", "#14A3A3"];
   const colorOf = name => PALETTE[[...String(name)].reduce((a, c) => a + c.charCodeAt(0), 0) % PALETTE.length];
   const initials = name => String(name).replace(/Pakistan|Shoes/g, "").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
@@ -156,7 +156,10 @@
   /* ---------------- shell ---------------- */
   function nav(active) {
     const w = W();
-    $("#nav").innerHTML = PAGES.map(p => p.grp ? `<div class="grp">${p.grp}</div>` :
+    $("#side-links").innerHTML = PAGES.filter(p => p.foot).map(p => `<a href="#${p.id}" class="${p.id === active ? "on" : ""}">${svg(p.id)}${p.label}</a>`).join("")
+      + `<button type="button" id="tour-again">${svg("how")}Take the 1-minute tour</button>`;
+    $("#tour-again").onclick = () => tour(true);
+    $("#nav").innerHTML = PAGES.filter(p => !p.foot).map(p => p.grp ? `<div class="grp">${p.grp}</div>` :
       `<a href="#${p.id}" class="${p.id === active ? "on" : ""}" ${p.id === active ? 'aria-current="page"' : ""}>${svg(p.id)}<span>${p.label}</span>${p.count && w ? `<span class="cnt">${fmt(waitLeft(w))}</span>` : ""}</a>`).join("");
     $("#tabbar").innerHTML = TABS.map(id => `<a href="#${id}" class="${id === active ? "on" : ""}">${svg(id)}<span>${TAB_LABEL[id]}</span>${id === "inbox" && w ? `<span class="cnt">${fmt(waitLeft(w))}</span>` : ""}</a>`).join("");
     $("#ws-av").textContent = !S.ws ? "?" : S.ws === "all" ? "A" : S.ws === "core" ? "3" : initials(S.ws);
@@ -200,7 +203,7 @@
       ? `#${h.rank} of ${D.brands.length} brands · ${scoreWord(h.score)} audience`
       : `average of ${h.n} brands · best ${esc(h.best.brand)} (${h.best.score}), weakest ${esc(h.worst.brand)} (${h.worst.score})`;
     return `<div class="stat"><div class="l">Brand health score <a class="info" href="#how" title="How is this calculated?">?</a></div>
-      <div class="gauge" style="margin-top:8px">${gauge(h.score, 84)}<div><div class="score" style="color:${scoreColor(h.score)}">${h.score}<small> /100</small></div><div class="n">${sub}</div></div></div></div>`;
+      <div class="gauge" style="margin-top:8px">${gauge(h.score, 84)}<div><div class="score" style="color:${scoreColor(h.score)}">${h.score}<small> /100</small></div><div class="n">${sub}</div></div></div><a class="go" href="#competitors">See the ranking →</a></div>`;
   }
   function today() {
     const w = W();
@@ -214,26 +217,28 @@
         <span class="kicker">● ${w.new_buyers ? `${fmt(w.new_buyers)} new buyer${w.new_buyers === 1 ? "" : "s"} since the last update` : "Sales slipping away right now"}</span>
         <div class="money" id="money" data-target="${w.waiting}">${money(w.waiting)}</div>
         <div class="line"><b>${fmt(w.waiting)} buyers</b> asked about price, stock or delivery. Nobody answered.</div>
-        <div class="sub">${esc(w.label)} · ${fmt(w.buying)} buying questions in ${fmt(w.comments)} real YouTube comments · estimate at Rs ${fmt(S.price)} a pair, ${S.conv}% buying</div>
+        <div class="sub">Estimated sales you could win back · Rs ${fmt(S.price)} a pair, ${S.conv}% of them buying · ${esc(w.label)}</div>
         ${trendLine(w)}
-        <div class="cta"><a class="btn coral" href="#inbox">Answer them now</a><a class="btn ghost" href="#report">Get the client report</a></div>
+        <div class="cta"><a class="btn coral" href="#inbox">Answer them now →</a><a class="btn ghost" href="#report">Share the report</a></div>
         <div class="ticker" aria-label="Recent unanswered buyer comments"><div class="track">${bubbles}${bubbles}</div></div>
         <svg class="pulse" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="pg" x1="0" x2="1"><stop offset="0" stop-color="#8B7BFF" stop-opacity="0"/><stop offset=".5" stop-color="#8B7BFF"/><stop offset="1" stop-color="#FF7A59"/></linearGradient></defs><path d="M0 80 H260 L290 80 L310 40 L335 110 L360 20 L385 95 L405 80 H640 L665 80 L685 55 L705 100 L725 70 H1000"/></svg>
       </section>
       <div class="side-stats s4">
         ${healthCard()}
-        <div class="stat ${rc.tone}"><div class="l">${rc.l}</div><div class="v">${rc.v}</div><div class="n">${rc.n}</div></div>
-        <div class="stat good"><div class="l">${pc.l}</div><div class="v">${esc(pc.v)}</div><div class="n">${esc(pc.n)}</div></div>
+        <div class="stat ${rc.tone}"><div class="l">${rc.l}</div><div class="v">${rc.v}</div><div class="n">${rc.n}</div><a class="go" href="#inbox">Answer them →</a></div>
+        <div class="stat good"><div class="l">${pc.l}</div><div class="v">${esc(pc.v)}</div><div class="n">${esc(pc.n)}</div><a class="go" href="#campaigns">See ideas →</a></div>
       </div>
 
-      ${w.alerts.length ? `<section class="panel s5"><div class="panel-h"><h2>Alerts</h2><span>${D.history && D.history.length > 1 ? "since the last update" : "last 30 days of data"}</span></div>
+      ${w.alerts.length ? `<section class="panel s5"><div class="panel-h"><h2>What changed</h2><span>${D.history && D.history.length > 1 ? "since the last update" : "last 30 days of data"}</span></div>
         ${w.alerts.map(a => `<a class="alert" href="#${a.go}"><div class="ic ${a.tone}">${alertIcon(a)}</div><p>${esc(a.text)}</p></a>`).join("")}</section>` : ""}
-      <section class="panel ${w.alerts.length ? "s7" : "s12"}"><div class="panel-h"><h2>Buyers waiting for you</h2><a class="more" href="#inbox">Open inbox (${fmt(w.waiting)})</a></div>
-        ${preview.map(m => `<div class="msg">${avatar(m.brand, true)}<div><div class="meta"><b>${esc(m.brand)}</b>${m.new ? '<span class="tag new">New</span>' : ""}<span class="tag ${tagFor(m.ask)}">${esc(m.ask)}</span><span>${esc(m.where)}</span></div>
-          <div class="txt">${esc(m.text)}</div><div class="rep"><b>Suggested reply:</b> ${esc(reply(m.need, m.brand)).slice(0, 120)}…</div></div><span class="note">${esc(m.date.slice(5))}</span></div>`).join("") || '<p class="note">No waiting buyers here.</p>'}</section>
+      <section class="panel ${w.alerts.length ? "s7" : "s12"}"><div class="panel-h"><h2>Answer these first</h2><a class="more" href="#inbox">See all ${fmt(waitLeft(w))}</a></div>
+        ${preview.map(m => `<div class="msg ${isDone(m) ? "done" : ""}">${avatar(m.brand, true)}<div><div class="meta"><b>${esc(m.brand)}</b>${m.new ? '<span class="tag new">New</span>' : ""}<span class="tag ${tagFor(m.ask)}">${esc(m.ask)}</span></div>
+          <div class="txt">${esc(m.text)}</div>
+          <div class="quick"><button class="btn primary sm" type="button" data-qcopy="${m.id}">${svg("copy")}Copy reply</button><button class="btn ${isDone(m) ? "done-btn" : "ghost"} sm" type="button" data-qdone="${m.id}">${svg("check")}${isDone(m) ? "Replied" : "Mark as replied"}</button></div></div>
+          <span class="note">${esc(m.date.slice(5))}</span></div>`).join("") || `<div class="empty">${SHOEBOX}<b>All caught up</b><span>No buyers waiting here.</span></div>`}</section>
 
-      <section class="panel s12"><div class="panel-h"><h2>Do these 3 things today</h2><a class="more" href="#campaigns">All campaign ideas</a></div>
-        <div class="camp3">${w.campaigns.slice(0, 3).map(c => `<div class="camp"><div class="tags"><span class="tag ${c.impact.startsWith("High") ? "hot" : "warm"}">${c.impact}</span><span class="tag ok">${c.effort}</span><span class="tag cool">${esc(c.channel)}</span></div><h3>${esc(c.title)}</h3><p>${esc(c.do)}</p><div class="why">${esc(fillMoney(c.why))}</div></div>`).join("")}</div></section>
+      <section class="panel s12"><div class="panel-h"><h2>Your 3 to-dos this week</h2><a class="more" href="#campaigns">All ideas</a></div>
+        <div class="camp3">${w.campaigns.slice(0, 3).map((c, i) => `<div class="camp"><div class="tags"><span class="todo-n">${i + 1}</span><span class="tag ${c.impact.startsWith("High") ? "hot" : "warm"}">${c.impact}</span></div><h3>${esc(c.title)}</h3><p>${esc(c.do)}</p><div class="why">${esc(fillMoney(c.why))}</div></div>`).join("")}</div></section>
     </div></div>`;
   }
   function countUp() {
@@ -255,7 +260,7 @@
     const m = items.find(x => x.id === S.sel);
     const answered = all.filter(isDone).length, share = all.length ? answered / all.length : 0;
     const rows = items.slice(0, 300).map(x => `<button class="irow ${x.id === S.sel ? "on" : ""} ${isDone(x) ? "done" : ""}" data-id="${x.id}" type="button">${avatar(x.brand, true)}<div><div class="top"><b>${esc(x.brand)}</b><span>${esc(x.date)}</span></div><div class="t">${esc(x.text)}</div><div class="tags">${isDone(x) ? `<span class="tag ok">${svg("check")}Replied</span>` : ""}${x.new ? '<span class="tag new">New</span>' : ""}<span class="tag ${tagFor(x.ask)}">${esc(x.ask)}</span><span class="tag grey">${esc(x.where)}</span></div></div></button>`).join("");
-    return `<div class="fade">${header("Leads inbox", `${fmt(waitLeft(W()))} buyers are still waiting. Pick one, copy the reply, paste it on YouTube, tick it off.`,
+    return `<div class="fade">${header("Buyers to answer", `<span class="how3"><span><b>1</b>Pick a buyer</span><span><b>2</b>Copy the reply, paste it on YouTube</span><span><b>3</b>Mark as replied</span></span>`,
       `<div class="seg" role="group" aria-label="Source">${["Everywhere", "Your videos", "Creator videos"].map(s => `<button type="button" data-src="${s}" class="${S.src === s ? "on" : ""}">${s}</button>`).join("")}</div>`)}
       <div class="progress"><div class="pt"><b>${fmt(answered)} of ${fmt(all.length)}</b> answered${answered ? ` · ${fmt(all.length - answered)} to go` : " · tick each buyer as you reply"}</div><div class="pb"><i style="width:${(share * 100).toFixed(1)}%"></i></div><span class="note">Saved on this device</span></div>
       <div class="chips" role="group" aria-label="Type">${kinds.map(k => `<button type="button" class="chip ${S.kind === k ? "on" : ""}" data-kind="${k}">${k}<em>${count(k)}</em></button>`).join("")}</div>
@@ -375,7 +380,7 @@
   /* ---------------- CAMPAIGNS ---------------- */
   function campaigns() {
     const cs = W().campaigns;
-    return `<div class="fade">${header("Campaign ideas", "Smart suggestions built from your comments. Every idea shows the number behind it and comes with ready ad copy.")}
+    return `<div class="fade">${header("Ideas", "Campaigns built from what your customers ask, each with ready ad copy, plus the creators already selling for you.")}
       <div class="grid">${cs.map((c, i) => `<section class="camp-card s6"><div class="tags"><span class="tag ${c.impact.startsWith("High") ? "hot" : c.impact.startsWith("Medium") ? "warm" : "grey"}">${c.impact}</span><span class="tag ok">${c.effort}</span><span class="tag cool">${esc(c.channel)}</span></div>
         <h3>${esc(c.title)}</h3><p>${esc(c.do)}</p><div class="why">Why: ${esc(fillMoney(c.why))}</div>
         <div class="copy"><div class="c"><div><small>ENGLISH</small><span id="en${i}">${esc(c.en)}</span></div><button class="btn ghost sm" data-copy="en${i}" type="button">Copy</button></div>
@@ -394,7 +399,7 @@
   function digest() {
     const w = W(), h = health();
     const seen = new Set(), leads = inboxItems().filter(m => m.ask !== "Complaint" && m.text.length >= 8 && m.text.length < 120 && !seen.has(m.text.toLowerCase()) && seen.add(m.text.toLowerCase())).slice(0, 3);
-    return `<div class="fade">${header("Weekly digest", "The email a brand's marketing team gets every Monday. Copy it or send it yourself.",
+    return `<div class="fade">${header("Monday email", "What your team gets every Monday. Send it by WhatsApp or email.",
       `<div class="row-btns no-print" style="margin:0"><button class="btn ghost" id="dcopy" type="button">${svg("copy")}Copy</button><a class="btn wa" id="dwa" href="#" target="_blank" rel="noopener">${svg("whatsapp")}WhatsApp</a><a class="btn primary" id="dmail" href="#">${svg("digest")}Email</a></div>`)}
       <div class="mail"><div class="bar"><i></i><i></i><i></i></div>
         <div class="hd"><div><b>From:</b> Joota Pulse &lt;digest@jootapulse&gt;</div><div><b>To:</b> marketing team, ${esc(w.label)}</div><div><b>Subject:</b> ${fmt(w.waiting)} buyers are waiting for your reply</div></div>
@@ -410,7 +415,7 @@
   function report() {
     const w = W(), h = health();
     const segs = w.segments.filter(s => (s.tone === "hot" || s.tone === "bad") && s.people >= MIN).sort((a, b) => b.people - a.people).slice(0, 5);
-    return `<div class="fade">${header("Client report", "A one-page snapshot to send to the brand. Switch the workspace to make one for a single brand.",
+    return `<div class="fade">${header("Report", "A one-page snapshot to share with your boss or your client, as a PDF.",
       `<div class="row-btns no-print" style="margin:0">${W().brands.length === 1 ? `<a class="btn ghost" href="audit.html?brand=${encodeURIComponent(W().brands[0])}" target="_blank" rel="noopener">${svg("share")}Open the shareable audit</a>` : ""}<button class="btn primary" id="print" type="button">Download PDF</button></div>`)}
       <article class="sheet"><div class="hd"><small>JOOTA PULSE · AUDIENCE INTELLIGENCE</small><h2>Client snapshot: ${esc(w.label)}</h2><p>Based on ${fmt(w.comments)} real public YouTube comments · data updated ${esc(D.date)}</p></div>
       <div class="bd"><div class="k4">
@@ -516,8 +521,8 @@
     $("#set-ws").onchange = e => choose(e.target.value, "settings");
     $("#set-link").oninput = e => { S.link = e.target.value; store.set("link", S.link); };
     $("#set-lang").onchange = e => { S.lang = e.target.value; store.set("lang", S.lang); toast("Saved."); };
-    $("#set-price").oninput = e => { S.price = Math.max(0, Number(e.target.value) || 0); store.set("price", S.price); $("#price").value = S.price; };
-    $("#set-conv").oninput = e => { S.conv = Math.min(100, Math.max(0, Number(e.target.value) || 0)); store.set("conv", S.conv); $("#conv").value = S.conv; };
+    $("#set-price").oninput = e => { S.price = Math.max(0, Number(e.target.value) || 0); store.set("price", S.price); };
+    $("#set-conv").oninput = e => { S.conv = Math.min(100, Math.max(0, Number(e.target.value) || 0)); store.set("conv", S.conv); };
     $$("[data-th]").forEach(b => b.onclick = () => { setTheme(b.dataset.th); store.set("theme", S.theme); render(); });
   }
 
@@ -584,6 +589,31 @@
     });
   }
 
+  /* ---------------- 1-minute tour ---------------- */
+  const TOUR = [
+    { ic: "inbox", h: "These shoppers want to buy", p: "Joota Pulse reads YouTube comments about your brand every week and finds the people asking about price, stock, sizes and delivery." },
+    { ic: "copy", h: "Copy the ready reply", p: "Every buyer comes with a reply in Roman Urdu or English. Copy it, paste it under the video on YouTube." },
+    { ic: "check", h: "Tick it off, every Monday", p: "Mark each buyer as replied and watch the progress bar fill up. New buyers, your score and 3 to-dos arrive every Monday." },
+  ];
+  function tour(force) {
+    if (!force && store.get("toured", false)) return;
+    let i = 0;
+    const box = $("#tour"); box.hidden = false;
+    const draw = () => {
+      const t = TOUR[i];
+      box.innerHTML = `<div class="tour-card" role="dialog" aria-modal="true" aria-label="Quick tour"><div class="t-ic">${svg(t.ic)}</div>
+        <small>STEP ${i + 1} OF ${TOUR.length}</small><h2>${t.h}</h2><p>${t.p}</p>
+        <div class="t-dots">${TOUR.map((_, n) => `<i class="${n === i ? "on" : ""}"></i>`).join("")}</div>
+        <div class="t-btns"><button type="button" class="btn ghost" id="t-skip">Skip</button><button type="button" class="btn primary" id="t-next">${i < TOUR.length - 1 ? "Next" : "Start answering"}</button></div></div>`;
+      $("#t-skip").onclick = done;
+      $("#t-next").onclick = () => { if (i < TOUR.length - 1) { i++; draw(); } else { done(); location.hash = "inbox"; } };
+      $("#t-next").focus();
+    };
+    const done = () => { box.hidden = true; store.set("toured", true); };
+    box.onclick = e => { if (e.target === box) done(); };
+    draw();
+  }
+
   /* ---------------- router ---------------- */
   const VIEWS = { start, today, inbox, customers, content: campaigns, competitors, campaigns, digest, report, how, settings };
   function render() {
@@ -595,7 +625,11 @@
     if (S.ws) nav(id); else { $("#nav").innerHTML = ""; $("#tabbar").innerHTML = ""; }
     $("#view").innerHTML = VIEWS[id]();
     if (id === "start") $$("[data-ws]").forEach(b => b.onclick = () => choose(b.dataset.ws));
-    if (id === "today") countUp();
+    if (id === "today") {
+      countUp();
+      $$("[data-qcopy]").forEach(b => b.onclick = () => { const m = D.inbox.find(x => x.id === Number(b.dataset.qcopy)); copy(reply(m.need, m.brand)); });
+      $$("[data-qdone]").forEach(b => b.onclick = () => { const m = D.inbox.find(x => x.id === Number(b.dataset.qdone)); toggleDone(m); render(); toast(isDone(m) ? "Marked as replied." : "Moved back to waiting."); });
+    }
     if (id === "inbox") wireInbox();
     if (id === "customers") $$("[data-seg]").forEach(b => b.onclick = () => { S.seg = b.dataset.seg; render(); $("#hear")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); });
     if (id === "content" || id === "campaigns") wireContent();
@@ -618,6 +652,7 @@
     const to = "#" + (stay || "today");
     if (location.hash === to) render(); else location.hash = to;
     window.scrollTo(0, 0);
+    setTimeout(() => tour(false), 600);
   }
 
   function init(data) {
@@ -631,15 +666,12 @@
     sel.innerHTML = `<option value="all">All brands (agency view)</option><option value="core">Core: Borjan, Servis, Ndure</option>` + D.brands.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join("");
     sel.onchange = () => choose(sel.value);
     $("#src-sub").textContent = `${fmt(D.how.comments)} comments · updated ${ago(D.updated)}`;
-    const box = $("#assume"), btn = $("#assume-btn");
-    btn.onclick = () => { box.hidden = !box.hidden; btn.setAttribute("aria-expanded", String(!box.hidden)); };
-    $("#price").value = S.price; $("#conv").value = S.conv;
-    $("#price").oninput = e => { S.price = Math.max(0, Number(e.target.value) || 0); store.set("price", S.price); render(); };
-    $("#conv").oninput = e => { S.conv = Math.min(100, Math.max(0, Number(e.target.value) || 0)); store.set("conv", S.conv); render(); };
+
     window.addEventListener("hashchange", () => { render(); window.scrollTo(0, 0); });
     wireBell(); wireCmd();
     $("#cmd-btn").querySelector("kbd").textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K";
     render();
+    if (S.ws) setTimeout(() => tour(false), 900);
   }
 
   fetch("data.json", { cache: "no-cache" }).then(r => r.json()).then(data => {

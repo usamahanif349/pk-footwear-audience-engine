@@ -884,3 +884,34 @@ kbd { font: 600 .72rem var(--body); padding: 2px 6px; border-radius: 6px; backgr
 .btn.wa-soft { background: transparent; color: #4BE08A; border: 1px solid rgba(75, 224, 138, .45); }
 .btn.wa-soft:hover { background: rgba(37, 211, 102, .1); }
 .btn.wa-soft svg { width: 18px; height: 18px; }
+
+/* =================================================================== SIMPLE MODE: plain actions, steps, tour */
+.stat .go { display: inline-block; margin-top: 10px; font-weight: 700; font-size: .86rem; color: var(--violet); text-decoration: none; }
+.stat .go:hover { text-decoration: underline; }
+.msg .quick { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.msg.done { opacity: .6; }
+.todo-n { width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center; font: 800 .85rem var(--display); color: #fff;
+  background: linear-gradient(135deg, var(--violet-2), var(--coral)); margin-right: 4px; }
+.how3 { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 4px; }
+.how3 span { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+.how3 b { width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center; font: 800 .8rem var(--display); color: #fff; background: var(--violet-2); }
+.side-links { display: grid; gap: 2px; margin: auto 0 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.side-links a, .side-links button { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 10px; color: var(--dim); font: 600 .84rem var(--body);
+  text-decoration: none; background: none; border: 0; cursor: pointer; text-align: left; }
+.side-links a:hover, .side-links button:hover, .side-links a.on { color: var(--text); background: var(--s2); }
+.side-links svg { width: 16px; height: 16px; }
+.tour-wrap { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 16px; background: rgba(6, 5, 18, .6); backdrop-filter: blur(6px); }
+.tour-wrap[hidden] { display: none; }
+.tour-card { width: min(440px, 100%); background: var(--panel); border: 1px solid var(--line-2); border-radius: 24px; padding: 30px; text-align: center;
+  box-shadow: 0 40px 120px rgba(0, 0, 0, .45); animation: popin .2s ease-out; }
+.t-ic { width: 72px; height: 72px; margin: 0 auto 16px; border-radius: 22px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, var(--violet-2), var(--coral)); box-shadow: 0 16px 40px rgba(108, 92, 245, .35); }
+.t-ic svg { width: 34px; height: 34px; }
+.tour-card small { font-weight: 700; font-size: .74rem; letter-spacing: .08em; color: var(--violet); }
+.tour-card h2 { font: 700 1.45rem var(--display); letter-spacing: -.02em; margin-top: 6px; }
+.tour-card p { color: var(--muted); margin-top: 10px; }
+.t-dots { display: flex; justify-content: center; gap: 6px; margin-top: 20px; }
+.t-dots i { width: 7px; height: 7px; border-radius: 99px; background: var(--s3); } .t-dots i.on { width: 22px; background: var(--violet); }
+.t-btns { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+.side-links + .side-foot { margin-top: 0; }
+#nav a > span:not(.cnt) { white-space: nowrap; }

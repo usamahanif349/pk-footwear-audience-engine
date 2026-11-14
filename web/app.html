@@ -22,6 +22,7 @@
       <span>Joota<b>Pulse</b></span>
     </a>
     <nav id="nav" aria-label="Main"></nav>
+    <div class="side-links" id="side-links"></div>
     <div class="side-foot">
       <div class="src"><span class="live-dot"></span>Live YouTube data</div>
       <div class="src-sub" id="src-sub"></div>
@@ -46,14 +47,8 @@
         <button class="cmd-btn" id="cmd-btn" type="button" aria-label="Search and jump (Ctrl K)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span><kbd>Ctrl K</kbd></button>
         <div class="bell-wrap"><button class="icon-btn" id="bell" type="button" aria-label="Alerts" aria-expanded="false" aria-controls="bell-pop" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="dot" id="bell-n" hidden></span></button>
           <div class="pop" id="bell-pop" hidden></div></div>
-        <button class="btn ghost hide-sm" id="assume-btn" type="button" aria-expanded="false" aria-controls="assume">Assumptions</button>
         <button class="icon-btn" id="theme" type="button" aria-label="Switch theme"></button>
-        <a class="btn primary hide-sm" href="#report">Client report</a>
-      </div>
-      <div class="assume" id="assume" hidden>
-        <label>Average pair price (Rs)<input type="number" id="price" min="500" max="30000" step="500" value="4500"></label>
-        <label>Askers who'd buy if answered (%)<input type="number" id="conv" min="1" max="50" step="1" value="10"></label>
-        <p>Used for the missed-sales estimate only.</p>
+        <a class="btn primary hide-sm" href="#report">Share report</a>
       </div>
     </header>
     <main id="view" tabindex="-1" aria-busy="true"><div class="grid"><div class="skel s8" style="height:380px"></div><div class="s4" style="display:grid;gap:14px"><div class="skel" style="height:118px"></div><div class="skel" style="height:118px"></div><div class="skel" style="height:118px"></div></div><div class="skel s5" style="height:300px"></div><div class="skel s7" style="height:300px"></div></div></main>
@@ -61,6 +56,7 @@
 </div>
 <nav class="tabbar" id="tabbar" aria-label="Main (mobile)"></nav>
 <div class="cmdk" id="cmdk" hidden><div class="cmdk-box" role="dialog" aria-modal="true" aria-label="Search"><div class="cmdk-in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="cmdk-q" placeholder="Jump to a page, brand or action…" autocomplete="off" aria-label="Search"><kbd>Esc</kbd></div><div class="cmdk-list" id="cmdk-list"></div><div class="cmdk-f"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span></div></div></div>
+<div class="tour-wrap" id="tour" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="app.js"></script>
