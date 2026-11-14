@@ -36,12 +36,32 @@
 
 <main>
 <section class="lp lp-hero">
+  <div class="hero-grid">
+  <div class="hero-copy">
   <span class="eyebrow"><span class="live-dot"></span><span data-k="eyebrow">Live YouTube data, refreshed every week</span></span>
   <h1>Your customers are asking to buy. <span class="grad">Nobody is answering.</span></h1>
   <p class="lede">Every week Joota Pulse reads thousands of real YouTube comments about Pakistani footwear brands, finds the people asking for prices, sizes and delivery, and hands your team the reply, the customer group and the next campaign.</p>
   <div class="cta"><a class="btn coral lg" href="#brands">Get your free audit</a><a class="btn ghost lg" href="app.html">Open the live app</a></div>
   <p class="small">Free audit for any brand · real public data · no sign-up</p>
-  <div class="tour" id="tour">
+  </div>
+  <div class="demo" id="demo" aria-label="Live example: a real buyer comment and the reply Joota Pulse suggests">
+    <div class="demo-top"><span class="yt"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4" fill="#FF0033"/><path d="M10 9.2v5.6l4.8-2.8z" fill="#fff"/></svg>YouTube comment</span><span class="demo-where" id="demo-where">under a creator video</span></div>
+    <div class="demo-cmt"><div class="demo-av" id="demo-av">S</div><div><div class="demo-meta"><b>Shopper</b><span id="demo-date">this week</span></div><p id="demo-text">Shop kidhar hai?</p></div></div>
+    <div class="demo-ai">
+      <div class="demo-ai-h"><span class="pulse-ic"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="url(#lg)"/><path d="M12 36h11l5-15 8 26 6-16h10" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><b>Joota Pulse spotted a buyer</b><span class="tag hot" id="demo-tag">Where to buy</span></div>
+      <div class="demo-reply"><small>READY REPLY · ROMAN URDU</small><p><span id="demo-reply"></span><i class="caret"></i></p></div>
+      <div class="demo-act"><span class="demo-btn" id="demo-btn">Copy reply</span><span class="demo-note" id="demo-note">1 of <b data-k="waiting">–</b> buyers still waiting for a reply</span></div>
+    </div>
+    <div class="demo-dots" id="demo-dots"></div>
+  </div>
+  </div>
+  <div class="trust reveal">
+    <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg>Official YouTube Data API</span>
+    <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 11-3-6.7L21 8M21 3v5h-5"/></svg>Updated every Monday</span>
+    <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>Reads English, Roman Urdu &amp; Urdu</span>
+    <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>Commenter names never stored</span>
+  </div>
+  <div class="tour reveal" id="tour">
     <div class="tour-tabs" role="tablist" aria-label="Product tour">
       <button type="button" role="tab" data-v="today" class="on"><b>Today</b><span>Missed sales and health</span><i></i></button>
       <button type="button" role="tab" data-v="inbox"><b>Leads inbox</b><span>Reply in one click</span><i></i></button>
@@ -56,7 +76,7 @@
         <img data-shot="digest" alt="Weekly digest email" width="1440" height="900" loading="lazy">
       </div></div></div>
   </div>
-  <div class="proof-strip">
+  <div class="proof-strip reveal">
     <div><b data-k="comments">–</b><span>real comments analysed</span></div>
     <div class="hot"><b data-k="waiting">–</b><span>buyers still waiting for a reply</span></div>
     <div><b data-k="money">–</b><span>missed sales (estimate)</span></div>
@@ -65,7 +85,7 @@
 </section>
 
 <section class="lp sec">
-  <div class="insight">
+  <div class="reveal insight">
     <div>
       <div class="big" data-k="ratio">–</div>
       <h3>That's how many buying questions brands answered on their own YouTube videos.</h3>
@@ -80,32 +100,37 @@
 </section>
 
 <section class="lp sec" id="how">
-  <div class="sec-h"><small>HOW IT WORKS</small><h2>From comment to customer in three steps</h2><p>No setup for your team. We watch YouTube for you and send what matters.</p></div>
-  <div class="steps3">
-    <div class="step3"><div class="n">1</div><h3>Listen</h3><p>Every Monday we collect fresh comments from brand channels and creators' sale vlogs and reviews, using the official YouTube Data API.</p></div>
-    <div class="step3"><div class="n">2</div><h3>Understand</h3><p>A multilingual AI model reads English, Roman Urdu and Urdu, and tags each comment: price, stock, size, delivery, complaint or praise.</p></div>
-    <div class="step3"><div class="n">3</div><h3>Act</h3><p>Your team gets a leads inbox with ready replies, customer groups, a brand health score, alerts and campaigns with ad copy.</p></div>
+  <div class="sec-h reveal"><small>HOW IT WORKS</small><h2>From comment to customer, every week</h2><p>No setup for your team. We watch YouTube for you and send what matters.</p></div>
+  <div class="flow reveal">
+    <div class="node"><div class="ic yt"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4" fill="currentColor"/><path d="M10 9.2v5.6l4.8-2.8z" fill="#fff"/></svg></div>
+      <h3>We listen</h3><p>Every Monday: brand channels, creators' sale vlogs and reviews.</p></div>
+    <div class="link" aria-hidden="true"><i></i></div>
+    <div class="node"><div class="ic ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg></div>
+      <h3>AI understands</h3><p>Reads English, Roman Urdu and Urdu, and spots every buyer, complaint and fan.</p></div>
+    <div class="link" aria-hidden="true"><i></i></div>
+    <div class="node"><div class="ic team"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l3-8h12l3 8v6H3zM3 13h5l1 3h6l1-3h5"/></svg></div>
+      <h3>Your team acts</h3><p>Ready replies, alerts, campaign ideas and a Monday digest in one place.</p></div>
   </div>
 </section>
 
 <section class="lp sec" id="features">
   <div class="sec-h"><small>FEATURES</small><h2>Everything a marketing team needs, on one screen</h2></div>
-  <div class="feat">
+  <div class="feat reveal">
     <div class="txt"><small>LEADS INBOX</small><h3>Answer buyers before they buy from someone else</h3><p>Every unanswered buying question, from your videos and creators' videos, in one inbox. Filter by type, copy a ready reply, paste it on YouTube.</p>
       <ul><li>Replies in Roman Urdu and English</li><li>"New" tag on questions posted since the last update</li><li>Export to CSV for your sales team</li></ul></div>
     <div class="pic"><img data-crop="inbox" alt="Leads inbox with suggested reply" loading="lazy" width="1440" height="900"></div>
   </div>
-  <div class="feat rev">
+  <div class="feat rev reveal">
     <div class="txt"><small>BRAND HEALTH AND COMPETITORS</small><h3>Know where you stand against seven competitors</h3><p>A 0–100 health score from buying interest, complaints and fans, ranked against every tracked brand. See what each brand's customers ask about.</p>
       <ul><li>Weekly scorecard of all 8 brands</li><li>Reply rate shown next to the score</li><li>The method is explained in the app</li></ul></div>
     <div class="pic"><img data-crop="competitors" alt="Competitor scorecard ranked by brand health" loading="lazy" width="1440" height="900"></div>
   </div>
-  <div class="feat">
+  <div class="feat reveal">
     <div class="txt"><small>CUSTOMER GROUPS</small><h3>Talk to price checkers differently from fans</h3><p>Everyone who commented is placed in one group, such as price checkers, where-can-I-buy askers, deal hunters or unhappy customers, with their own words and what to do next.</p>
       <ul><li>Ready-to-buy groups highlighted</li><li>Real quotes from each group</li><li>The cities shoppers name most</li></ul></div>
     <div class="pic"><img data-crop="customers" alt="Customer groups" loading="lazy" width="1440" height="900"></div>
   </div>
-  <div class="feat rev">
+  <div class="feat rev reveal">
     <div class="txt"><small>DIGEST AND CLIENT REPORT</small><h3>A Monday email your boss will actually read</h3><p>A weekly digest with alerts, the buyers to answer first and three actions, plus a one-page client report you can download as a PDF.</p>
       <ul><li>Alerts for waiting buyers, complaints and creator leads</li><li>Campaign ideas with ad copy in two languages</li><li>One click to a PDF report</li></ul></div>
     <div class="pic"><img data-crop="digest" alt="Weekly digest email preview" loading="lazy" width="1440" height="900"></div>
@@ -114,12 +139,12 @@
 
 <section class="lp sec" id="brands">
   <div class="sec-h"><small>FREE AUDIT</small><h2>Pick your brand and see who's waiting</h2><p>This week's numbers for every brand we track. Click yours for a free one-page audit.</p></div>
-  <div class="bproof" id="bproof"></div>
+  <div class="reveal bproof" id="bproof"></div>
 </section>
 
 <section class="lp sec" id="pricing">
   <div class="sec-h"><small>PRICING</small><h2>Simple plans for brands and agencies</h2></div>
-  <div class="pricing">
+  <div class="reveal pricing">
     <div class="plan"><h3>Snapshot</h3><div class="for">See what you're missing</div><div class="price">Rs 0</div>
       <ul><li>Live workspace for one brand</li><li>Leads inbox and ready replies</li><li>Brand health score</li><li>One client report</li></ul><a class="btn ghost" href="app.html">Start free</a></div>
     <div class="plan pop"><h3>Growth</h3><div class="for">For one brand's marketing team</div><div class="price">Rs 25,000<small> / month</small></div>
@@ -132,7 +157,7 @@
 
 <section class="lp sec" id="faq">
   <div class="sec-h"><small>FAQ</small><h2>Questions brands ask</h2></div>
-  <div class="faq">
+  <div class="reveal faq">
     <details><summary>How does the free pilot work?</summary><p>The first 3 brands get 30 days of the Growth plan for free: the leads inbox, alerts, the Monday digest and a walkthrough call with your team. No payment details needed. At the end we ask for 15 minutes of honest feedback and, if you're happy, permission to mention you as a pilot brand.</p></details>
     <details><summary>Where does the data come from?</summary><p>Public YouTube comments, collected through the official YouTube Data API: brand channels plus creators' sale vlogs, hauls and reviews. Instagram, TikTok and Facebook aren't included because their terms don't allow this kind of collection.</p></details>
     <details><summary>How fresh is it?</summary><p>An automatic job runs every Monday: it collects new comments, re-runs the analysis and republishes the site. The date at the top of the app shows the latest update.</p></details>
@@ -145,7 +170,7 @@
 </section>
 
 <section class="lp sec" id="about">
-  <div class="founder">
+  <div class="reveal founder">
     <img class="f-av" src="founder.jpg" alt="Usama Hanif" width="140" height="140" loading="lazy">
     <div class="f-txt">
       <small>FOUNDER</small>
@@ -161,7 +186,7 @@
 </section>
 
 <section class="lp">
-  <div class="final">
+  <div class="reveal final">
     <h2>Find out what your customers asked this week</h2>
     <p>Open your brand's free audit now, or book 20 minutes and we'll walk your team through the leads, the health score and the three things to do first.</p>
     <div class="cta"><a class="btn coral lg" href="#brands">Get your free audit</a><a class="btn ghost lg" data-audit href="#">Book a 20-min call</a></div>

@@ -16,6 +16,61 @@
   const initials = name => String(name).replace(/Pakistan|Shoes/g, "").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const scoreColor = s => s >= 70 ? "var(--mint)" : s >= 50 ? "var(--gold)" : "var(--rose)";
 
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!still && "IntersectionObserver" in window) document.documentElement.classList.add("js-motion");
+
+  /* fade sections in as they scroll into view */
+  const seen = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); seen.unobserve(e.target); } }), { threshold: .12 });
+  if (document.documentElement.classList.contains("js-motion")) $$(".reveal").forEach(el => seen.observe(el));
+
+  /* count a number up when it first comes into view */
+  function countUp(el, target, show) {
+    if (still || !("IntersectionObserver" in window)) { el.textContent = show(target); return; }
+    el.textContent = show(0);
+    const io = new IntersectionObserver(es => {
+      if (!es[0].isIntersecting) return; io.disconnect();
+      const t0 = performance.now(), dur = 1200;
+      const step = now => { const k = Math.min((now - t0) / dur, 1), e = 1 - Math.pow(1 - k, 3); el.textContent = show(target * e); if (k < 1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    }, { threshold: .5 });
+    io.observe(el);
+  }
+
+  /* hero demo: a real buyer comment, the tag Joota Pulse gives it, and the ready reply typing out */
+  function demo(D) {
+    const NOT = /\d:\d\d|co ?-?ord|dress|suit|shirt|kurt|lawn|dupatta|lehenga|frock|trouser|jeans|bag|makeup|jewel|http|@/i;
+    const picks = [];
+    ["Where to buy", "Price", "Order & delivery", "Size", "Contact"].forEach(ask => {
+      const m = D.inbox.find(x => x.ask === ask && x.text.length >= 12 && x.text.length <= 70 && /[a-z]{3}/i.test(x.text) && !NOT.test(x.text) && D.replies[x.need]);
+      if (m) picks.push(m);
+    });
+    if (!picks.length) { $("#demo").hidden = true; return; }
+    const fill = (m) => (D.replies[m.need].ru || "").replace(/\{(\w+)\}/g, (_, k) => ({ brand: m.brand.replace(" Pakistan", ""), link: "[shop link]", price: "[price]", end_date: "[date]" }[k] ?? ""));
+    const dots = $("#demo-dots");
+    dots.innerHTML = picks.map(() => "<i></i>").join("");
+    let i = 0, timer = null, typing = null;
+    const show = k => {
+      i = k; const m = picks[k];
+      clearInterval(typing); clearTimeout(timer);
+      const card = $("#demo"); card.classList.remove("swap"); void card.offsetWidth; card.classList.add("swap");
+      $("#demo-text").textContent = m.text;
+      $("#demo-av").textContent = (m.text.match(/[a-z]/i) || ["S"])[0].toUpperCase(); $("#demo-av").style.background = colorOf(m.text);
+      $("#demo-where").textContent = m.own ? `on ${m.brand.replace(" Pakistan", "")}'s own video` : `under a video about ${m.brand.replace(" Pakistan", "")}`;
+      $("#demo-date").textContent = new Date(m.date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+      $("#demo-tag").textContent = m.ask; $("#demo-tag").className = "tag hot";
+      $("#demo-btn").textContent = "Copy reply"; $("#demo-btn").classList.remove("done");
+      $$("i", dots).forEach((d, n) => d.classList.toggle("on", n === k));
+      const full = fill(m), out = $("#demo-reply");
+      if (still) { out.textContent = full; } else {
+        let c = 0; out.textContent = "";
+        typing = setInterval(() => { c += 2; out.textContent = full.slice(0, c); if (c >= full.length) { clearInterval(typing); setTimeout(() => { $("#demo-btn").textContent = "Copied ✓"; $("#demo-btn").classList.add("done"); }, 500); } }, 28);
+      }
+      if (!still) timer = setTimeout(() => show((i + 1) % picks.length), 7000);
+    };
+    $$("i", dots).forEach((d, n) => d.onclick = () => show(n));
+    show(0);
+  }
+
   /* theme */
   const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
   const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>';
@@ -58,9 +113,10 @@
   fetch("data.json", { cache: "no-cache" }).then(r => r.json()).then(D => {
     const a = D.spaces.all, set = (k, v) => $$(`[data-k="${k}"]`).forEach(el => el.textContent = v);
     set("eyebrow", `Live: ${fmt(a.comments)} comments on ${D.brands.length} brands · updated ${D.date}`);
-    set("comments", fmt(a.comments));
-    set("waiting", fmt(a.waiting));
-    set("money", money(a.waiting));
+    $$('[data-k="comments"]').forEach(el => countUp(el, a.comments, n => fmt(Math.round(n))));
+    $$('[data-k="waiting"]').forEach(el => el.closest(".proof-strip") ? countUp(el, a.waiting, n => fmt(Math.round(n))) : (el.textContent = fmt(a.waiting)));
+    $$('[data-k="money"]').forEach(el => countUp(el, a.waiting, n => money(n)));
+    demo(D);
     set("brands", D.brands.length);
     set("ratio", `${a.own_answered} of ${a.own_q}`);
     set("creatorq", fmt(a.creator_q));

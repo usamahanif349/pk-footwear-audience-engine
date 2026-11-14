@@ -303,7 +303,8 @@ def workspace(com, vids_all, picked, label, newest=None):
         cities=cities(cust)[:6], asks=asks, trend=trend,
         recent=int((d >= cut).sum()), older=int((d < cut).sum()),
         segments=segs, stats=stats, post_more=[card(r) for r in cg.head(3).itertuples()],
-        post_less=[card(r) for r in cg.tail(3).iloc[::-1].itertuples()], leads=leads(cust),
+        # "less of this" never repeats a "post more" item (small brands have only a few content groups)
+        post_less=[card(r) for r in cg.iloc[min(3, len(cg)):].tail(3).iloc[::-1].itertuples()], leads=leads(cust),
         standouts=[dict(title=r.title, url=r.url, brand=r.brand, channel=r.channel, views=int(r.views),
                         why=r.unusual_because.split(";")[0]) for r in u.itertuples()],
         campaigns=campaigns(cust, vids, picked, label, int(len(waiting)), buy_q),

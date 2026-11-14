@@ -300,18 +300,16 @@
   /* ---------------- CONTENT ---------------- */
   function content() {
     const w = W(), st = w.stats;
-    const card = (c, tone) => `<div class="pc"><div class="t">${esc(c.type)} <span class="tag ${tone}">${c.format}</span></div><div class="m"><div><b>${c.cm.toFixed(2)}</b>comments / 1k views</div><div><b>${pct(c.hi)}</b>buying questions</div><div><b>${fmt(c.views)}</b>median views</div><div><b>${c.n}</b>videos</div></div></div>`;
+    const item = (c, good) => `<div class="pl"><i class="hic ${good ? "ok" : "bad"}">${svg(good ? "up" : "down")}</i><div><b>${esc(c.type)}</b><span>${esc(c.format)}</span></div>
+      <em>${good ? `${pct(c.hi)} of comments are buyers` : "views, little conversation"}</em></div>`;
     return `<div class="page-h" style="margin-top:40px"><div><h1>Content and creators</h1><p>What gets shoppers talking and asking to buy, and the creators who already bring them in.</p></div></div>
-      ${st ? `<div class="big3">
-        <div class="stat"><div class="v">${Math.round(st.cm_ratio)}×</div><div class="n">more comments per view on creator videos than on brand videos</div></div>
-        <div class="stat"><div class="v">${pct(st.hi_creator)} vs ${pct(st.hi_brand)}</div><div class="n">of comments are buying questions on creator vs brand videos</div></div>
-        <div class="stat"><div class="v">${Math.round(st.views_ratio)}×</div><div class="n">more views on brand videos, mostly paid reach with little conversation</div></div></div>` : ""}
+      ${st ? `<div class="insight-card"><div class="v">${Math.round(st.cm_ratio)}×</div><p><b>Creator videos start ${Math.round(st.cm_ratio)}× more conversation than brand videos.</b> Brand videos get the views, mostly paid reach, but shoppers ask their questions under creators' sale vlogs and reviews. Work with the creators below.</p></div>` : ""}
       <div class="grid">
-        <section class="panel s6"><div class="panel-h"><h2><i class="hic ok">${svg("up")}</i>Post more of this</h2><span>most conversation per view</span></div>${w.post_more.map(c => card(c, "ok")).join("") || '<p class="note">Not enough videos.</p>'}</section>
-        <section class="panel s6"><div class="panel-h"><h2><i class="hic bad">${svg("down")}</i>Less of this</h2><span>views without conversation</span></div>${w.post_less.map(c => card(c, "grey")).join("") || '<p class="note">Not enough videos.</p>'}</section>
-        <section class="panel s12"><div class="panel-h"><h2>Creator leaderboard</h2><span>buyers asking on their videos</span></div>
-          ${w.leads.slice(0, 6).map((l, i) => `<div class="lead"><span class="rk ${i < 3 ? "top" : ""}">${i + 1}</span>${avatar(l.channel, true)}<div><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.channel)}</a><div class="sub">${esc(l.brands)} · creator replies to ${pct(l.answered)}</div></div><div class="n">${l.buyers}<small>buyers asked</small></div></div>`).join("") || '<p class="note">No creator videos for this brand.</p>'}
-          ${w.leads.length ? '<div class="row-btns"><button class="btn ghost sm" id="pitch" type="button">Copy a partnership message</button></div>' : ""}</section>
+        <section class="panel s6"><div class="panel-h"><h2><i class="hic ok">${svg("up")}</i>Post more of this</h2></div>${w.post_more.map(c => item(c, true)).join("") || '<p class="note">Not enough videos yet.</p>'}</section>
+        <section class="panel s6"><div class="panel-h"><h2><i class="hic bad">${svg("down")}</i>Less of this</h2></div>${w.post_less.filter(c => !w.post_more.some(m => m.type === c.type && m.format === c.format)).map(c => item(c, false)).join("") || '<p class="note">Not enough videos yet.</p>'}</section>
+        <section class="panel s12"><div class="panel-h"><h2>Creators already selling for you</h2><span>buyers asking on their videos</span></div>
+          ${w.leads.slice(0, 6).map((l, i) => `<div class="lead"><span class="rk ${i < 3 ? "top" : ""}">${i + 1}</span>${avatar(l.channel, true)}<div><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(String(l.channel).trim())}</a><div class="sub">${esc(l.brands)}</div></div><div class="n">${l.buyers}<small>buyers asked</small></div></div>`).join("") || '<p class="note">No creator videos for this brand yet.</p>'}
+          ${w.leads.length ? '<div class="row-btns"><button class="btn primary sm" id="pitch" type="button">Copy a partnership message</button></div>' : ""}</section>
       </div>`;
   }
   function wireContent() {
@@ -326,26 +324,32 @@
   /* ---------------- COMPETITORS ---------------- */
   function competitors() {
     const mine = new Set(S.ws === "all" ? [] : W().brands);
-    const mx = Math.max(...D.competitors.map(c => c.buying));
     const rows = [...D.competitors].sort((a, b) => b.health - a.health);
-    return `<div class="fade">${header("Competitors", "Every brand's audience side by side, ranked by brand health. Your workspace is highlighted.")}
-      <section class="panel"><div class="panel-h"><h2>Brand scorecard</h2><a class="more" href="#how">How health is calculated</a></div>
-      <div class="scroll-x"><table class="tbl"><thead><tr><th>#</th><th>Brand</th><th>Health</th><th>Comments</th><th>Buying questions</th><th>Top ask</th><th>Replies on own videos</th><th>Fans</th><th>Complaints</th><th>Ad buzz</th></tr></thead><tbody>
-      ${rows.map((c, i) => `<tr class="${mine.has(c.brand) ? "me" : ""}"><td>${i + 1}</td><td>${esc(c.brand)}</td><td><span class="score-pill" style="background:color-mix(in srgb, ${scoreColor(c.health)} 16%, transparent);color:${scoreColor(c.health)}">${c.health}</span></td><td>${fmt(c.comments)}</td><td>${pct(c.buying)}<span class="meter"><i style="width:${(c.buying / mx * 100).toFixed(0)}%"></i></span></td><td><span class="tag hot">${esc(c.top)}</span></td><td>${c.own_q ? `${c.own_answered} of ${c.own_q}` : "–"}</td><td>${pct(c.fans)}</td><td>${pct(c.complaints, 1)}</td><td>${pct(c.buzz)}</td></tr>`).join("")}
-      </tbody></table></div></section>
-      <section class="panel" style="margin-top:18px"><div class="panel-h"><h2>What each brand's customers ask about</h2><span>% of the brand's comments</span></div><div class="chart-box"><canvas id="cmp"></canvas></div></section></div>`;
-  }
-  function drawCompetitors() {
-    if (!window.Chart) return;
-    const t = chartTheme();
-    const keys = ["Where to buy", "Price", "Sale", "Order & delivery", "Quality", "Complaints"];
-    const cols = ["#8B7BFF", "#FF7A59", "#E05BA8", "#3D8BFF", "#2BB98A", "#FF5C7A"];
-    charts.push(new Chart($("#cmp"), {
-      type: "bar",
-      data: { labels: D.competitors.map(c => c.brand), datasets: keys.map((k, i) => ({ label: k, data: D.competitors.map(c => c.mix[k]), backgroundColor: cols[i], borderRadius: 4, maxBarThickness: 16 })) },
-      options: { maintainAspectRatio: false, plugins: { legend: { labels: { color: t.text, boxWidth: 10, boxHeight: 10, usePointStyle: true } }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.raw}%` } } },
-        scales: { x: { ticks: { color: t.text }, grid: { display: false } }, y: { ticks: { color: t.dim, callback: v => v + "%" }, grid: { color: t.grid } } } },
-    }));
+    /* one plain-language strength or risk per brand, relative to the other brands */
+    const rankOf = (k, c) => [...rows].sort((a, b) => b[k] - a[k]).indexOf(c);
+    const trait = c => c.complaints > 0.01 && rankOf("complaints", c) === 0 ? ["bad", "More complaints than most"]
+      : rankOf("fans", c) < 2 ? ["ok", "Big fan base"]
+      : rankOf("buying", c) < 3 ? ["hot", "Strong buying interest"]
+      : rankOf("buying", c) >= rows.length - 2 ? ["grey", "Few buying questions"]
+      : ["cool", "Steady audience"];
+    const meIdx = rows.findIndex(c => mine.has(c.brand)), me = rows[meIdx], top = rows[0];
+    const banner = me && mine.size === 1
+      ? (meIdx === 0 ? `<b>${esc(me.brand)} leads all ${rows.length} brands</b> on audience health this week. Keep answering buyers to stay there.`
+        : `<b>${esc(me.brand)} is #${meIdx + 1} of ${rows.length}</b> on audience health this week. ${esc(top.brand)} leads with ${top.health}.`)
+      : `<b>${esc(top.brand)} leads</b> on audience health this week with ${top.health}/100.`;
+    return `<div class="fade">${header("Competitors", "How every brand's audience compares this week. Your brand is highlighted.")}
+      <div class="banner">${svg("competitors")}<p>${banner}</p></div>
+      <section class="panel"><div class="panel-h"><h2>Audience health ranking</h2><a class="more" href="#how">How it's calculated</a></div>
+        ${rows.map((c, i) => { const sp = D.spaces[c.brand]; return `<div class="rank-row ${mine.has(c.brand) ? "me" : ""}"><span class="rk">${i + 1}</span>${avatar(c.brand)}
+          <div class="nm"><b>${esc(c.brand)}</b><span class="tag ${trait(c)[0]}">${trait(c)[1]}</span></div>
+          <div class="hb"><div class="track"><i style="width:${c.health}%;background:${scoreColor(c.health)}"></i></div></div>
+          <div class="sc" style="color:${scoreColor(c.health)}">${c.health}<small>${scoreWord(c.health)}</small></div>
+          <div class="wt"><b>${sp ? fmt(sp.waiting) : "–"}</b><small>buyers waiting</small></div></div>`; }).join("")}
+      </section>
+      <details class="panel more-data"><summary>See the full scorecard</summary>
+      <div class="scroll-x"><table class="tbl"><thead><tr><th>#</th><th>Brand</th><th>Health</th><th>Comments</th><th>Buying questions</th><th>Replies on own videos</th><th>Fans</th><th>Complaints</th></tr></thead><tbody>
+      ${rows.map((c, i) => `<tr class="${mine.has(c.brand) ? "me" : ""}"><td>${i + 1}</td><td>${esc(c.brand)}</td><td>${c.health}</td><td>${fmt(c.comments)}</td><td>${pct(c.buying)}</td><td>${c.own_q >= MIN ? `${c.own_answered} of ${c.own_q}` : "–"}</td><td>${pct(c.fans)}</td><td>${pct(c.complaints, 1)}</td></tr>`).join("")}
+      </tbody></table></div></details></div>`;
   }
 
   /* ---------------- CAMPAIGNS ---------------- */
@@ -576,7 +580,6 @@
     if (id === "customers") $$("[data-seg]").forEach(b => b.onclick = () => { S.seg = b.dataset.seg; render(); $("#hear")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); });
     if (id === "content" || id === "campaigns") wireContent();
     if (id === "campaigns") $$("[data-copy]").forEach(b => b.onclick = () => copy($("#" + b.dataset.copy).textContent, "Ad copy copied."));
-    if (id === "competitors") drawCompetitors();
     if (id === "how") drawHow();
     if (id === "report") $("#print").onclick = () => window.print();
     if (id === "settings") wireSettings();
