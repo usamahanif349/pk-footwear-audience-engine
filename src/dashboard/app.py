@@ -15,6 +15,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import urllib.request
+
 import streamlit as st
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -26,7 +28,10 @@ REPO_URL = "https://github.com/usamahanif349/pk-footwear-audience-engine"
 P1_URL = "https://github.com/usamahanif349/pk-footwear-sentiment-analysis"
 P2_URL = "https://github.com/usamahanif349/pk-footwear-budget-optimizer"
 P2_APP = "https://pk-footwear-budget-optimizer.streamlit.app/"
-DATA_DATE = "12 Nov 2026"
+DATA_DATE = "12 Nov 2026"  # the original snapshot; replaced by the latest weekly run when it can be loaded
+# The weekly GitHub Action in the joota-pulse repo saves its analysis files here, so this app follows the live site.
+LIVE_DATA = "https://raw.githubusercontent.com/usamahanif349/joota-pulse/main/analyst-data/"
+SNAPSHOT_STATS = dict(videos_kept=853, comments_raw=8508)
 CORE = ["Borjan", "Servis", "Ndure"]
 BRAND_POST, CREATOR_POST = "Brand's own post", "Creator / influencer post"
 
@@ -249,24 +254,44 @@ def avatar(name):
 
 
 # ---------------- data ----------------
-@st.cache_data
+@st.cache_data(ttl=6 * 3600)
 def load():
-    com = pd.read_csv(PROC / "comments_labeled.csv")
-    vids = pd.read_csv(PROC / "videos_enriched.csv")
-    seg = pd.read_csv(PROC / "comment_segments.csv")
+    """Latest weekly data if it can be reached, otherwise the 12 Nov 2026 snapshot shipped with the repo."""
+    base, stats = str(PROC) + "/", None
+    try:
+        with urllib.request.urlopen(LIVE_DATA + "pipeline_stats.json", timeout=8) as r:
+            stats = json.loads(r.read().decode())
+        base = LIVE_DATA
+    except Exception:
+        stats = None
+    def src(name):
+        return base + name
+    try:
+        com = pd.read_csv(src("comments_labeled.csv"))
+        vids = pd.read_csv(src("videos_enriched.csv"))
+        seg = pd.read_csv(src("comment_segments.csv"))
+    except Exception:  # live files half-missing: use the snapshot for everything
+        base, stats = str(PROC) + "/", None
+        com = pd.read_csv(src("comments_labeled.csv"))
+        vids = pd.read_csv(src("videos_enriched.csv"))
+        seg = pd.read_csv(src("comment_segments.csv"))
     com = com.drop(columns=["channel", "title", "source", "channel_country"], errors="ignore")
     com = com.merge(vids[["video_id", "post_type", "channel", "channel_id", "title", "format", "content_type", "url"]],
                     on="video_id", how="left").merge(seg[["comment_id", "segment"]], on="comment_id", how="left")
     com["answered"] = com.thread.isin(set(com[com.owner_reply].thread))
-    unusual = pd.read_csv(PROC / "unusual_posts.csv")
-    metrics = json.loads((PROC / "method_metrics.json").read_text())
-    clusters = pd.read_csv(PROC / "clusters.csv")
-    cmap = pd.read_csv(PROC / "cluster_map.csv")
-    bench = pd.read_csv(PROC / "benchmark.csv") if (PROC / "benchmark.csv").exists() else None
-    return com, vids, unusual, metrics, clusters, cmap, bench
+    unusual = pd.read_csv(src("unusual_posts.csv"))
+    metrics = json.loads(urllib.request.urlopen(src("method_metrics.json"), timeout=8).read().decode()) if base == LIVE_DATA \
+        else json.loads((PROC / "method_metrics.json").read_text())
+    clusters = pd.read_csv(src("clusters.csv"))
+    cmap = pd.read_csv(src("cluster_map.csv"))
+    bench = pd.read_csv(PROC / "benchmark.csv") if (PROC / "benchmark.csv").exists() else None  # one-off Colab benchmark
+    return com, vids, unusual, metrics, clusters, cmap, bench, stats
 
 
-COM, VIDS, UNUSUAL, METRICS, CLUSTERS, CMAP, BENCH = load()
+COM, VIDS, UNUSUAL, METRICS, CLUSTERS, CMAP, BENCH, RUN = load()
+if RUN and RUN.get("run_date"):
+    DATA_DATE = pd.Timestamp(RUN["run_date"]).strftime("%-d %b %Y")
+RUN_STATS = {**SNAPSHOT_STATS, **(RUN or {})}
 BRANDS = CORE + sorted(b for b in VIDS.brand.unique() if b not in CORE)
 
 if hasattr(st, "logo"):
@@ -747,7 +772,8 @@ def page_how():
     with t4:
         st.markdown(
             f"- **Real data only:** {len(COM):,} public comments on {len(VIDS):,} videos, collected {DATA_DATE} with the official YouTube Data API.\n"
-            "- **Collected:** 853 videos and 8,508 comments; after cleaning, 690 videos and 6,724 comments.\n"
+            f"- **Collected:** {RUN_STATS['videos_kept']:,} videos and {RUN_STATS['comments_raw']:,} comments; after cleaning, {len(VIDS):,} videos and {len(COM):,} comments. "
+            "The data refreshes every Monday with the Joota Pulse site.\n"
             "- **Privacy:** commenter names are never stored (each person is an anonymous code); phone numbers, e-mails, "
             "@handles and order numbers are removed from the text.\n"
             "- **Every video keeps its link and collection date** (Table A); every comment keeps its video, language, topic and "

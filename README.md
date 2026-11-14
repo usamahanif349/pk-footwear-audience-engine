@@ -6,16 +6,18 @@ A marketing web app built on **real YouTube comments** (the original 12 Nov 2026
 
 Borjan, Servis and Ndure are the core brands, the same three as in [Project 1](https://github.com/usamahanif349/pk-footwear-sentiment-analysis) and [Project 2](https://github.com/usamahanif349/pk-footwear-budget-optimizer). Stylo, Metro, Hush Puppies, Insignia and ECS widen the audience.
 
-🔗 **Joota Pulse web app:** https://usamahanif349.github.io/joota-pulse/ · **Analyst version (Streamlit):** https://pk-footwear-audience-engine.streamlit.app/
+🔗 **Joota Pulse web app:** https://joota-pulse.vercel.app (also on [GitHub Pages](https://usamahanif349.github.io/joota-pulse/)) · **Analyst version (Streamlit):** https://pk-footwear-audience-engine.streamlit.app/
+
+Both apps refresh every Monday: a GitHub Action in the [joota-pulse](https://github.com/usamahanif349/joota-pulse) repo collects new comments, runs this engine, republishes the site and saves the analysis files the Streamlit app reads (it falls back to the 12 Nov 2026 snapshot in `data/processed/` if they can't be reached).
 
 ## What a marketing team gets
 
 | Page | What it does |
 |---|---|
 | **Today** | Missed sales estimate, brand health score, alerts, waiting buyers and the 3 things to do today |
-| **Leads inbox** | Every unanswered buying question in one list; click one and get a ready reply in Roman Urdu or English |
+| **Leads inbox** | Every unanswered buying question in one list; a ready reply in Roman Urdu or English, "mark as replied" with a progress bar, and one-tap WhatsApp sharing to the team |
 | **Your customers** | Customer groups (Where-can-I-buy askers, Price checkers, Deal hunters…) with what to do for each |
-| **Competitors** | Brand scorecard ranked by health: buying questions, top ask, replies, fans, complaints for all 8 brands |
+| **Competitors** | All 8 brands ranked by audience health, each with one plain-language strength or risk; the full scorecard is one click away |
 | **Campaigns & creators** | Ready-to-run campaigns with ad copy, what to post, and a creator leaderboard |
 | **Weekly digest** | The Monday e-mail with alerts, buyers to answer first and 3 actions |
 | **Client report & audit page** | One-page PDF and a personal audit page per brand (`audit.html?brand=…`) |
