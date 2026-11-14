@@ -11,6 +11,8 @@ State kept between runs (in the joota-pulse repo, folder state/):
   known_videos.csv  videos kept in any run, so they are re-checked every week
   first_seen.csv    the first run each comment appeared in ("new" leads)
   history.json      one line of key numbers per run (trend chart)
+  comments_archive.csv.gz / videos_archive.csv.gz   every comment and video collected so far (data only grows)
+  channels.json / search_cursor.json                cached brand channel ids, next search terms per brand
 
 Usage:  python src/live/refresh.py --state ../state --out ../data.json [--offline]
 --offline skips collection and embeddings and reuses data/raw (for testing).
@@ -94,7 +96,8 @@ def main():
         from collect import collect
         kpath = state / "known_videos.csv"
         known = pd.read_csv(kpath) if kpath.exists() else pd.DataFrame(columns=["video_id", "brand", "source"])
-        vids_raw, com_raw, vids, com, stats = collect(os.environ["YOUTUBE_API_KEY"], known)
+        limit = int(os.environ.get("UNIT_LIMIT") or 9000)   # YouTube units this run may use (free limit: 10,000 a day)
+        vids_raw, com_raw, vids, com, stats = collect(os.environ["YOUTUBE_API_KEY"], known, state, limit)
         print("collected:", stats, flush=True)
         vids_raw.to_csv(RAW / "videos.csv", index=False)
         com_raw.drop(columns=["lang", "source", "channel", "channel_country", "title"]).to_csv(RAW / "comments.csv", index=False)

@@ -1,13 +1,20 @@
 """
-Collect and clean YouTube data for the live Joota Pulse app (same rules as the
+Collect and clean YouTube data for the live Joota Pulse app (same cleaning rules as the
 12 Nov 2026 Colab collection in notebooks/01_collect_youtube_colab.py).
 
-Every run re-crawls everything: new search results, the brands' own channels and every
-video seen in earlier runs, so new comments and new brand replies are picked up.
-Uses about 6,000 of the free 10,000 YouTube API units per day.
+Version 2 (grows the data run by run, safely within YouTube's free 10,000 units a day):
+  * an archive of every comment ever collected (state/comments_archive.csv.gz), so a run that
+    stops early at the daily limit never loses data; new comments are added, old ones kept
+  * a unit budget: searches stop well before the limit, comment collection stops cleanly at it
+  * a bank of search terms per brand, rotated run by run (state/search_cursor.json)
+  * cheap depth: the recent uploads of creators who already review our brands are scanned
+    for more videos about the brands (1 unit per 50 videos)
+  * comments are re-fetched only for videos whose comment count changed
+The first archive starts from the 12 Nov 2026 collection in data/raw/.
 """
 import datetime as dt
 import hashlib
+import json
 import re
 import sys
 from pathlib import Path
@@ -19,13 +26,24 @@ from privacy import redact  # noqa: E402
 
 SEARCH_NAME = {"Borjan": "Borjan", "Servis": "Servis", "Ndure": "Ndure", "Stylo": "Stylo",
                "Bata Pakistan": "Bata", "Metro Shoes": "Metro", "Hush Puppies Pakistan": "Hush Puppies",
-               "Insignia": "Insignia", "ECS Shoes": "ECS"}
+               "Insignia": "Insignia", "ECS Shoes": "ECS", "Unze London": "Unze London", "Walkeaze": "Walkeaze",
+               "Starlet": "Starlet"}
 TITLE_KEY = {"Borjan": ["borjan"], "Servis": ["servis"], "Ndure": ["ndure"], "Stylo": ["stylo"],
              "Bata Pakistan": ["bata"], "Metro Shoes": ["metro"], "Hush Puppies Pakistan": ["hush pup", "hushpup", "hush pap"],
-             "Insignia": ["insignia"], "ECS Shoes": ["ecs"]}
-OFFICIAL_OK = ["Borjan", "Servis", "Ndure", "Stylo", "Metro Shoes", "Hush Puppies Pakistan", "Insignia"]
+             "Insignia": ["insignia"], "ECS Shoes": ["ecs"], "Unze London": ["unze"], "Walkeaze": ["walkeaze", "walk eaze"],
+             "Starlet": ["starlet"]}
+# brand words that also mean other things (Metro cash & carry, Opel Insignia, Stylo pens...): a creator video
+# found by scanning uploads must also mention footwear before it counts for these brands
+AMBIGUOUS = {"Stylo", "Metro Shoes", "Insignia", "ECS Shoes", "Starlet", "Bata Pakistan"}
+SHOE_WORDS = ["shoe", "joota", "jutay", "jootay", "sandal", "chappal", "sneaker", "heel", "slipper", "khussa", "footwear",
+              "jogger", "loafer", "moccasin", "peshawari", "kolhapuri", "pumps", "flats", "boots"]
+OFFICIAL_OK = ["Borjan", "Servis", "Ndure", "Stylo", "Metro Shoes", "Hush Puppies Pakistan", "Insignia",
+               "Unze London", "Walkeaze", "Starlet"]
 DROP_BRANDS = ["Bata Pakistan"]          # Bata's channel is Bata India, so Bata is left out
-QUERIES = ["shoes sale", "shoes review unboxing", "shoes new collection", "shoes haul"]
+QUERY_BANK = ["shoes sale", "shoes review unboxing", "shoes new collection", "shoes haul", "eid collection shoes",
+              "wedding shoes", "sandals", "joggers", "sneakers", "chappal", "ladies shoes", "men shoes", "kids shoes",
+              "winter collection shoes", "shoes price", "sale 50% off", "shoes try on", "outlet visit"]
+SEARCH_COST, UNIT_LIMIT, COMMENT_RESERVE = 100, 9000, 3000
 INDIA = ["india", "mumbai", "delhi", "amazon", "flipkart", "myntra", "meesho", "₹", "kolkata", "bangalore"]
 FOREIGN = ["singapore", "ofw", "philippine", "malaysia", "indonesia", "ghana", "nigeria", "smriti", "karthik"]
 ROMAN_URDU = set("""hai hain he ha ki ka ke k ko se me mein main mai mera meri ye yeh wo woh kya kia kyun
@@ -72,38 +90,137 @@ def lang_of(t):
         return "short_unclear"
 
 
-def find_videos(yt, known):
-    """video_id -> (brand, source). `known` is a DataFrame of videos kept in earlier runs."""
-    found = {}
-    for brand, name in SEARCH_NAME.items():
-        if brand in DROP_BRANDS:
-            continue
-        for q in QUERIES:
-            r = yt.search().list(part="snippet", q=f"{name} {q}", type="video", maxResults=50, regionCode="PK").execute()
-            for x in r["items"]:
-                found.setdefault(x["id"]["videoId"], (brand, "creator"))
-        if brand in OFFICIAL_OK:
-            ch = yt.search().list(part="snippet", q=name + " shoes official", type="channel", maxResults=1).execute()["items"]
-            if ch:
-                info = yt.channels().list(part="contentDetails", id=ch[0]["snippet"]["channelId"]).execute()["items"][0]
-                uploads, token, n = info["contentDetails"]["relatedPlaylists"]["uploads"], None, 0
-                while n < 300:
-                    r = yt.playlistItems().list(part="contentDetails", playlistId=uploads, maxResults=50, pageToken=token).execute()
-                    for x in r["items"]:
-                        found[x["contentDetails"]["videoId"]] = (brand, "official")
-                    n += len(r["items"])
-                    token = r.get("nextPageToken")
-                    if not token:
-                        break
-    for r in known.itertuples():                     # keep re-checking videos found before
-        found.setdefault(r.video_id, (r.brand, r.source))
+class OutOfBudget(Exception):
+    pass
+
+
+class Budget:
+    """Counts YouTube API units and stops before the daily free limit."""
+    def __init__(self, limit=UNIT_LIMIT):
+        self.limit, self.used = limit, 0
+
+    def call(self, request, cost=1):
+        if self.used + cost > self.limit:
+            raise OutOfBudget
+        try:
+            r = request.execute()
+        except Exception as e:  # quota errors mean the day's units are gone
+            if "quota" in str(e).lower():
+                self.used = self.limit
+                raise OutOfBudget
+            raise
+        self.used += cost
+        return r
+
+
+def mentions(title, brand, strict):
+    t = title.lower()
+    hit = any(k in t for k in TITLE_KEY[brand])
+    if hit and strict and brand in AMBIGUOUS:
+        hit = any(w in t for w in SHOE_WORDS)
+    return hit
+
+
+def brand_in_title(title):
+    for b in TITLE_KEY:
+        if b not in DROP_BRANDS and mentions(title, b, strict=True):
+            return b
+    return None
+
+
+def find_videos(yt, budget, known, state):
+    """video_id -> (brand, source). Known videos first (free), then brand channels, creator uploads, new searches."""
+    found = {r.video_id: (r.brand, r.source) for r in known.itertuples()}
+    chan_path = state / "channels.json"
+    chans = json.loads(chan_path.read_text()) if chan_path.exists() else {}
+    log = dict(official=0, creator_scan=0, search=0, searches_done=0)
+    try:
+        # 1. each brand's own channel: id cached after the first lookup, uploads cost 1 unit per 50 videos
+        for brand in OFFICIAL_OK:
+            if brand not in chans:
+                ch = budget.call(yt.search().list(part="snippet", q=SEARCH_NAME[brand] + " shoes official", type="channel",
+                                                  maxResults=1), SEARCH_COST)["items"]
+                ok = ch and any(k in ch[0]["snippet"]["title"].lower().replace(" ", "") for k in
+                                [x.replace(" ", "") for x in TITLE_KEY[brand]])
+                chans[brand] = ch[0]["snippet"]["channelId"] if ok else ""
+            if not chans[brand]:
+                continue
+            uploads, token, n = "UU" + chans[brand][2:], None, 0
+            while n < 300:
+                try:
+                    r = budget.call(yt.playlistItems().list(part="contentDetails", playlistId=uploads, maxResults=50, pageToken=token))
+                except OutOfBudget:
+                    raise
+                except Exception:
+                    break
+                for x in r["items"]:
+                    if x["contentDetails"]["videoId"] not in found:
+                        log["official"] += 1
+                    found[x["contentDetails"]["videoId"]] = (brand, "official")
+                n += len(r["items"])
+                token = r.get("nextPageToken")
+                if not token:
+                    break
+        # 2. creators who already review our brands: scan their latest 100 uploads for more brand videos
+        creators = known[known.source == "creator"]
+        cids = creators.channel_id.dropna().unique().tolist() if "channel_id" in creators else []
+        for cid in cids:
+            if budget.used > budget.limit - COMMENT_RESERVE - 1500:
+                break
+            token = None
+            for _ in range(2):
+                try:
+                    r = budget.call(yt.playlistItems().list(part="snippet", playlistId="UU" + cid[2:], maxResults=50, pageToken=token))
+                except OutOfBudget:
+                    raise
+                except Exception:
+                    break
+                for x in r["items"]:
+                    vid = x["snippet"]["resourceId"]["videoId"]
+                    b = brand_in_title(x["snippet"]["title"])
+                    if b and vid not in found:
+                        found[vid] = (b, "creator")
+                        log["creator_scan"] += 1
+                token = r.get("nextPageToken")
+                if not token:
+                    break
+        # 3. new searches, taking the next terms from each brand's bank, round-robin across brands
+        cur_path = state / "search_cursor.json"
+        cursor = json.loads(cur_path.read_text()) if cur_path.exists() else {}
+        brands = [b for b in SEARCH_NAME if b not in DROP_BRANDS]
+        while budget.used + SEARCH_COST <= budget.limit - COMMENT_RESERVE:
+            progressed = False
+            for brand in brands:
+                if budget.used + SEARCH_COST > budget.limit - COMMENT_RESERVE:
+                    break
+                k = cursor.get(brand, 0)
+                q = QUERY_BANK[k % len(QUERY_BANK)]
+                r = budget.call(yt.search().list(part="snippet", q=f"{SEARCH_NAME[brand]} {q}", type="video", maxResults=50,
+                                                 regionCode="PK"), SEARCH_COST)
+                for x in r["items"]:
+                    if x["id"]["videoId"] not in found:
+                        found[x["id"]["videoId"]] = (brand, "creator")
+                        log["search"] += 1
+                cursor[brand] = k + 1
+                log["searches_done"] += 1
+                progressed = True
+            if not progressed or all(cursor.get(b, 0) >= len(QUERY_BANK) * 4 for b in brands):
+                break
+        cur_path.write_text(json.dumps(cursor, indent=1))
+    except OutOfBudget:
+        pass
+    chan_path.write_text(json.dumps(chans, indent=1))
+    print("find_videos:", log, "units used:", budget.used, flush=True)
     return found
 
 
-def video_details(yt, found, today):
+def video_details(yt, budget, found, today):
     ids, rows = list(found), []
     for i in range(0, len(ids), 50):
-        r = yt.videos().list(part="snippet,statistics,contentDetails", id=",".join(ids[i:i + 50])).execute()
+        try:
+            r = budget.call(yt.videos().list(part="snippet,statistics,contentDetails", id=",".join(ids[i:i + 50])))
+        except OutOfBudget:
+            break
         for v in r["items"]:
             brand, source = found[v["id"]]
             sn, st = v["snippet"], v["statistics"]
@@ -117,7 +234,10 @@ def video_details(yt, found, today):
     vids = pd.DataFrame(rows)
     ch_ids, country = vids.channel_id.unique().tolist(), {}
     for i in range(0, len(ch_ids), 50):
-        r = yt.channels().list(part="snippet", id=",".join(ch_ids[i:i + 50])).execute()
+        try:
+            r = budget.call(yt.channels().list(part="snippet", id=",".join(ch_ids[i:i + 50])))
+        except OutOfBudget:
+            break
         for c in r["items"]:
             country[c["id"]] = c["snippet"].get("country", "")
     vids["channel_country"] = vids.channel_id.map(country).fillna("")
@@ -131,46 +251,85 @@ def keep_videos(vids):
     return vids[((vids.source == "official") | names_brand) & ~indian & (vids.comments > 0)].reset_index(drop=True)
 
 
-def comments(yt, vids, today):
+def comments(yt, budget, vids, today, skip):
+    """Fetch comments for kept videos, except those in `skip` (comment count unchanged since the archive).
+    Returns (comments, set of videos fully fetched). Stops cleanly when the unit budget runs out."""
     owner = dict(zip(vids.video_id, vids.channel_id))
-    rows = []
-    for vid, brand in zip(vids.video_id, vids.brand):
-        token = None
+    rows, done = [], set()
+    todo = vids[~vids.video_id.isin(skip)].sort_values("comments")   # small videos first: most videos per unit
+    for vid, brand in zip(todo.video_id, todo.brand):
+        token, got = None, []
         try:
             while True:
-                r = yt.commentThreads().list(part="snippet,replies", videoId=vid, maxResults=100,
-                                             textFormat="plainText", pageToken=token).execute()
+                r = budget.call(yt.commentThreads().list(part="snippet,replies", videoId=vid, maxResults=100,
+                                                         textFormat="plainText", pageToken=token))
                 for t in r["items"]:
                     items = [(t["snippet"]["topLevelComment"], False)] + [(c, True) for c in t.get("replies", {}).get("comments", [])]
                     for c, is_reply in items:
-                        s = c["snippet"]
-                        author_ch = s.get("authorChannelId", {}).get("value", "")
-                        rows.append(dict(comment_id=c["id"], video_id=vid, brand=brand, text=redact(s["textDisplay"]),
-                                         likes=s.get("likeCount", 0), published=s["publishedAt"][:10], is_reply=is_reply,
-                                         brand_reply=(author_ch == owner[vid]), author=anon(author_ch)))
+                        sn = c["snippet"]
+                        author_ch = sn.get("authorChannelId", {}).get("value", "")
+                        got.append(dict(comment_id=c["id"], video_id=vid, brand=brand, text=redact(sn["textDisplay"]),
+                                        likes=sn.get("likeCount", 0), published=sn["publishedAt"][:10], is_reply=is_reply,
+                                        brand_reply=(author_ch == owner[vid]), author=anon(author_ch)))
                 token = r.get("nextPageToken")
                 if not token:
                     break
+        except OutOfBudget:
+            break
         except Exception:
             pass   # comments turned off or video removed
-    com = pd.DataFrame(rows).drop_duplicates("comment_id")
+        rows += got
+        done.add(vid)
+    com = pd.DataFrame(rows, columns=["comment_id", "video_id", "brand", "text", "likes", "published", "is_reply",
+                                      "brand_reply", "author"]).drop_duplicates("comment_id")
     com["collected_on"] = today
-    return com
+    return com, done
 
 
-def collect(api_key, known):
-    """Returns (videos_raw, comments_raw, videos_clean, comments_clean, stats)."""
+def load_archive(state):
+    """Comment and video archives; the first time, start from the 12 Nov 2026 collection."""
+    cpath, vpath = state / "comments_archive.csv.gz", state / "videos_archive.csv.gz"
+    if cpath.exists() and vpath.exists():
+        return pd.read_csv(cpath), pd.read_csv(vpath)
+    raw = Path(__file__).resolve().parents[2] / "data" / "raw"
+    com, vids = pd.read_csv(raw / "comments.csv"), pd.read_csv(raw / "videos.csv")
+    lang = pd.read_csv(raw / "comments_clean.csv", usecols=["comment_id", "lang"])
+    com = com.merge(lang, on="comment_id", how="left")
+    com["lang"] = com["lang"].fillna(com.text.apply(lang_of) if com["lang"].isna().any() else "")
+    return com, vids
+
+
+def collect(api_key, known, state, limit=UNIT_LIMIT):
+    """Returns (videos_raw, comments_raw, videos_clean, comments_clean, stats) and updates the archives in `state`."""
     from googleapiclient.discovery import build
     yt = build("youtube", "v3", developerKey=api_key, cache_discovery=False)
-    today = str(dt.date.today())
-    found = find_videos(yt, known)
-    vids_all = video_details(yt, found, today)
+    budget, today = Budget(limit), str(dt.date.today())
+    arch_com, arch_vid = load_archive(state)
+    known = pd.concat([known, arch_vid[["video_id", "brand", "source", "channel_id"]]]).drop_duplicates("video_id")
+    found = find_videos(yt, budget, known, state)
+    vids_all = video_details(yt, budget, found, today)
     vids = keep_videos(vids_all)
-    com = comments(yt, vids, today)
-    com["lang"] = com.text.apply(lang_of)
-    com = com.merge(vids[["video_id", "source", "channel", "channel_country", "title"]], on="video_id", how="left")
+    # comments: skip videos whose comment count has not changed since they were archived
+    prev = dict(zip(arch_vid.video_id, arch_vid.comments))
+    in_arch = set(arch_com.video_id)
+    skip = {v for v, n in zip(vids.video_id, vids.comments) if v in in_arch and prev.get(v) == n}
+    new, done = comments(yt, budget, vids, today, skip)
+    new["lang"] = new.text.apply(lang_of) if len(new) else []
+    # merge: fully re-fetched videos replace their archived comments; everything else is kept
+    com = pd.concat([arch_com[~arch_com.video_id.isin(done)], new], ignore_index=True).drop_duplicates("comment_id", keep="last")
+    vid_arch = pd.concat([arch_vid[~arch_vid.video_id.isin(vids_all.video_id)], vids_all], ignore_index=True)
+    vid_arch.loc[vid_arch.video_id.isin(set(vids.video_id) - done - skip), "comments"] = -1   # fetch again next run
+    com.to_csv(state / "comments_archive.csv.gz", index=False)
+    vid_arch.to_csv(state / "videos_archive.csv.gz", index=False)
+    # the analysis uses every kept video we have comments for (archived ones included)
+    vids = keep_videos(vid_arch[vid_arch.video_id.isin(set(com.video_id))].assign(comments=lambda d: d.comments.abs().clip(lower=1)))
+    com = com[com.video_id.isin(vids.video_id)]
+    com = com.drop(columns=["source", "channel", "channel_country", "title"], errors="ignore") \
+             .merge(vids[["video_id", "source", "channel", "channel_country", "title"]], on="video_id", how="left")
     drop_video = com.brand.isin(DROP_BRANDS) | com.title.str.lower().apply(lambda t: any(w in t for w in FOREIGN))
     clean = com[~drop_video & ~com.lang.isin(["empty", "foreign"])].reset_index(drop=True)
     vids_clean = vids[~vids.brand.isin(DROP_BRANDS)].reset_index(drop=True)
-    stats = dict(videos_found=len(found), videos_kept=len(vids), comments_raw=len(com), comments_clean=len(clean))
+    stats = dict(videos_found=len(found), videos_kept=len(vids), comments_raw=len(com), comments_clean=len(clean),
+                 new_comments=len(new), videos_fetched=len(done), units_used=budget.used)
+    print("collect:", stats, flush=True)
     return vids, com, vids_clean, clean, stats
