@@ -38,9 +38,10 @@
           <span>Joota<b>Pulse</b></span>
         </a>
         <div class="ws">
-          <label for="ws-select" class="sr">Workspace</label>
-          <span class="ws-av" id="ws-av">A</span>
-          <select id="ws-select"></select>
+          <button type="button" class="ws-btn" id="ws-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="ws-menu">
+            <span class="ws-av" id="ws-av">A</span><span class="ws-name" id="ws-name">All brands</span>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+          <div class="ws-menu" id="ws-menu" role="listbox" aria-label="Choose a brand" hidden></div>
         </div>
       </div>
       <div class="top-actions">

@@ -164,7 +164,7 @@
     $("#tabbar").innerHTML = TABS.map(id => `<a href="#${id}" class="${id === active ? "on" : ""}">${svg(id)}<span>${TAB_LABEL[id]}</span>${id === "inbox" && w ? `<span class="cnt">${fmt(waitLeft(w))}</span>` : ""}</a>`).join("");
     $("#ws-av").textContent = !S.ws ? "?" : S.ws === "all" ? "A" : S.ws === "core" ? "3" : initials(S.ws);
     $("#ws-av").style.background = S.ws && D.spaces[S.ws] && D.spaces[S.ws].brands.length === 1 ? colorOf(S.ws) : "";
-    $("#ws-select").value = S.ws || "all";
+    $("#ws-name").textContent = S.ws && D.spaces[S.ws] ? (S.ws === "all" ? "All brands (agency view)" : S.ws === "core" ? "Borjan · Servis · Ndure" : S.ws) : "Choose a brand";
   }
   function setTheme(t) {
     S.theme = t;
@@ -459,7 +459,7 @@
         <section class="panel s5"><div class="panel-h"><h2>Big Data benchmark</h2><span>pandas vs Apache Spark</span></div>${h.benchmark ? `<div class="chart-box" style="height:260px"><canvas id="bench"></canvas></div><p class="note" style="margin-top:10px">${benchNote(h.benchmark)}</p>` : '<p class="note">Spark benchmark results will appear here after the Colab run.</p>'}</section>
         <section class="panel s12"><div class="panel-h"><h2>Limitations</h2></div><ul class="bul">
           <li><b>YouTube only.</b> Instagram, TikTok and Facebook comments can't be collected within their terms.</li>
-          <li><b>Missed sales is an estimate</b> from the assumptions (top bar), not a measured figure.</li>
+          <li><b>Missed sales is an estimate</b> from the pair price and buying share in Settings, not a measured figure.</li>
           <li><b>Most comments are on creator videos,</b> so they show what shoppers ask, not how a brand's own page performs.</li>
           <li><b>Brand videos with huge views and few comments are likely paid promotion.</b> No share counts from the API.</li>
           <li><b>Roman Urdu spelling varies,</b> so some comments are missed or mis-tagged; ${pct(D.limits.unlabelled)} stay unlabelled.</li>
@@ -589,6 +589,34 @@
     });
   }
 
+  /* ---------------- brand picker (custom dropdown) ---------------- */
+  function wsPicker() {
+    const btn = $("#ws-btn"), menu = $("#ws-menu");
+    const opt = (k, name, sub, av, bg) => `<button type="button" role="option" class="ws-opt" data-k="${esc(k)}"><span class="ws-av" style="background:${bg}">${esc(av)}</span>
+      <span class="t"><b>${esc(name)}</b><small>${sub}</small></span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></button>`;
+    const grad = "linear-gradient(135deg,var(--violet-2),var(--coral))";
+    const ranked = [...D.brands].sort((a, b) => D.spaces[b].health[b].score - D.spaces[a].health[a].score);
+    menu.innerHTML = `<div class="ws-g">Views</div>`
+      + opt("all", "All brands", `agency view · ${fmt(D.spaces.all.waiting)} buyers waiting`, "All", grad)
+      + (D.spaces.core ? opt("core", "Borjan · Servis · Ndure", `core brands · ${fmt(D.spaces.core.waiting)} buyers waiting`, "3", grad) : "")
+      + `<div class="ws-g">Brands, by health score</div>`
+      + ranked.map(b => opt(b, b, `health ${D.spaces[b].health[b].score} · ${fmt(D.spaces[b].waiting)} buyers waiting`, initials(b), colorOf(b))).join("");
+    const items = () => $$(".ws-opt", menu);
+    const open = () => { menu.hidden = false; btn.setAttribute("aria-expanded", "true"); items().forEach(o => o.setAttribute("aria-selected", String(o.dataset.k === S.ws)));
+      (items().find(o => o.dataset.k === S.ws) || items()[0]).focus(); };
+    const close = (focusBtn) => { menu.hidden = true; btn.setAttribute("aria-expanded", "false"); if (focusBtn) btn.focus(); };
+    btn.onclick = e => { e.stopPropagation(); menu.hidden ? open() : close(); };
+    btn.onkeydown = e => { if (e.key === "ArrowDown") { e.preventDefault(); open(); } };
+    menu.onclick = e => { const o = e.target.closest(".ws-opt"); if (o) { close(true); choose(o.dataset.k); } };
+    menu.onkeydown = e => {
+      const list = items(), i = list.indexOf(document.activeElement);
+      if (e.key === "ArrowDown") { e.preventDefault(); list[Math.min(i + 1, list.length - 1)].focus(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); list[Math.max(i - 1, 0)].focus(); }
+      else if (e.key === "Escape") close(true);
+    };
+    document.addEventListener("click", e => { if (!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)) close(); });
+  }
+
   /* ---------------- 1-minute tour ---------------- */
   const TOUR = [
     { ic: "inbox", h: "These shoppers want to buy", p: "Joota Pulse reads YouTube comments about your brand every week and finds the people asking about price, stock, sizes and delivery." },
@@ -662,9 +690,7 @@
     if (S.ws && !D.spaces[S.ws]) S.ws = null;
     setTheme(S.theme || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
     $("#theme").onclick = () => { setTheme(S.theme === "light" ? "dark" : "light"); store.set("theme", S.theme); render(); };
-    const sel = $("#ws-select");
-    sel.innerHTML = `<option value="all">All brands (agency view)</option><option value="core">Core: Borjan, Servis, Ndure</option>` + D.brands.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join("");
-    sel.onchange = () => choose(sel.value);
+    wsPicker();
     $("#src-sub").textContent = `${fmt(D.how.comments)} comments · updated ${ago(D.updated)}`;
 
     window.addEventListener("hashchange", () => { render(); window.scrollTo(0, 0); });
