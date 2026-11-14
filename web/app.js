@@ -111,7 +111,8 @@
     return rows.map(r => `<div class="hbar"><div class="row">${r.icon ? `<i class="hic">${svg(r.icon)}</i>` : ""}${esc(r.label)}<span>${fmt(r.n)}</span></div><div class="track"><div class="fill ${r.hot ? "hot" : ""}" style="width:${(r.n / mx * 100).toFixed(0)}%"></div></div></div>`).join("");
   };
   const ago = iso => {
-    const days = Math.round((Date.now() - new Date(iso + "T00:00:00").getTime()) / 864e5);
+    const t = new Date(); t.setHours(0, 0, 0, 0);  // count calendar days, not hours
+    const days = Math.round((t.getTime() - new Date(iso + "T00:00:00").getTime()) / 864e5);
     return days <= 0 ? "today" : days === 1 ? "yesterday" : `${days} days ago`;
   };
   const sparkline = pts => {
