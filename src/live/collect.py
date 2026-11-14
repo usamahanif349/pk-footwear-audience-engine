@@ -321,7 +321,15 @@ def collect(api_key, known, state, limit=UNIT_LIMIT):
     vid_arch.loc[vid_arch.video_id.isin(set(vids.video_id) - done - skip), "comments"] = -1   # fetch again next run
     com.to_csv(state / "comments_archive.csv.gz", index=False)
     vid_arch.to_csv(state / "videos_archive.csv.gz", index=False)
-    # the analysis uses every kept video we have comments for (archived ones included)
+    vids, com, vids_clean, clean = build_tables(com, vid_arch)
+    stats = dict(videos_found=len(found), videos_kept=len(vids), comments_raw=len(com), comments_clean=len(clean),
+                 new_comments=len(new), videos_fetched=len(done), units_used=budget.used)
+    print("collect:", stats, flush=True)
+    return vids, com, vids_clean, clean, stats
+
+
+def build_tables(com, vid_arch):
+    """From the archives to the cleaned tables the engine uses: every kept video we have comments for."""
     vids = keep_videos(vid_arch[vid_arch.video_id.isin(set(com.video_id))].assign(comments=lambda d: d.comments.abs().clip(lower=1)))
     com = com[com.video_id.isin(vids.video_id)]
     com = com.drop(columns=["source", "channel", "channel_country", "title"], errors="ignore") \
@@ -329,7 +337,14 @@ def collect(api_key, known, state, limit=UNIT_LIMIT):
     drop_video = com.brand.isin(DROP_BRANDS) | com.title.str.lower().apply(lambda t: any(w in t for w in FOREIGN))
     clean = com[~drop_video & ~com.lang.isin(["empty", "foreign"])].reset_index(drop=True)
     vids_clean = vids[~vids.brand.isin(DROP_BRANDS)].reset_index(drop=True)
-    stats = dict(videos_found=len(found), videos_kept=len(vids), comments_raw=len(com), comments_clean=len(clean),
-                 new_comments=len(new), videos_fetched=len(done), units_used=budget.used)
-    print("collect:", stats, flush=True)
+    return vids, com, vids_clean, clean
+
+
+def from_archive(state):
+    """Rebuild everything from the saved archives without calling YouTube (0 units)."""
+    arch_com, arch_vid = load_archive(state)
+    vids, com, vids_clean, clean = build_tables(arch_com, arch_vid)
+    stats = dict(videos_found=len(arch_vid), videos_kept=len(vids), comments_raw=len(com), comments_clean=len(clean),
+                 new_comments=0, videos_fetched=0, units_used=0)
+    print("rebuilt from archive:", stats, flush=True)
     return vids, com, vids_clean, clean, stats

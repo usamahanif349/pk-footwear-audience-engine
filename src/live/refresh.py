@@ -93,11 +93,15 @@ def main():
         stats = json.loads((state / "snapshot_stats.json").read_text()) if (state / "snapshot_stats.json").exists() else {}
     else:
         sys.path.insert(0, str(Path(__file__).parent))
-        from collect import collect
+        from collect import collect  # noqa: F401
         kpath = state / "known_videos.csv"
         known = pd.read_csv(kpath) if kpath.exists() else pd.DataFrame(columns=["video_id", "brand", "source"])
         limit = int(os.environ.get("UNIT_LIMIT") or 9000)   # YouTube units this run may use (free limit: 10,000 a day)
-        vids_raw, com_raw, vids, com, stats = collect(os.environ["YOUTUBE_API_KEY"], known, state, limit)
+        if os.environ.get("COLLECT", "yes") == "no":           # re-run the analysis on the saved archive only
+            from collect import from_archive
+            vids_raw, com_raw, vids, com, stats = from_archive(state)
+        else:
+            vids_raw, com_raw, vids, com, stats = collect(os.environ["YOUTUBE_API_KEY"], known, state, limit)
         print("collected:", stats, flush=True)
         vids_raw.to_csv(RAW / "videos.csv", index=False)
         com_raw.drop(columns=["lang", "source", "channel", "channel_country", "title"]).to_csv(RAW / "comments.csv", index=False)

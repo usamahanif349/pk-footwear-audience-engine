@@ -312,9 +312,17 @@ def workspace(com, vids_all, picked, label, newest=None):
     )
 
 
+MIN_BRAND = 150  # a brand is shown only once it has this many customer comments (less would make its scores noise)
+
+
 def main():
     com, vids = load()
-    brands = CORE + sorted(b for b in vids.brand.unique() if b not in CORE)
+    n = com[~com.owner_reply].brand.value_counts()
+    shown = [b for b in n.index if n[b] >= MIN_BRAND]
+    if len(n.index) > len(shown):
+        print("not shown yet (too few comments):", {b: int(n[b]) for b in n.index if b not in shown}, flush=True)
+    com, vids = com[com.brand.isin(shown)].reset_index(drop=True), vids[vids.brand.isin(shown)].reset_index(drop=True)
+    brands = [b for b in CORE if b in shown] + sorted(b for b in shown if b not in CORE)
     newest = last_run_date(com)
     spaces = {"all": workspace(com, vids, brands, f"All {len(brands)} brands", newest),
               "core": workspace(com, vids, CORE, "Borjan · Servis · Ndure", newest)}
