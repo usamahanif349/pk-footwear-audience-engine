@@ -42,8 +42,9 @@
     const asks = D.inbox.filter(m => m.brand === b && m.ask !== "Complaint" && m.text.length >= 10 && m.text.length <= 160 && !/\d:\d\d|co ?-?ord|dress|suit|shirt|kurt|lawn|dupatta|lehenga|frock|trouser|jeans|bag|makeup|jewel/i.test(m.text)
       && !seen.has(m.text.toLowerCase()) && seen.add(m.text.toLowerCase())).slice(0, 6);
     const rows = [...D.competitors].sort((x, y) => y.health - x.health);
-    const rate = s.own_q ? `${s.own_answered} of ${s.own_q}` : "none yet";
-    const city = s.cities[0];
+    const MIN = 5;  // a finding needs at least 5 comments behind it
+    const city = s.cities.filter(c => c.n >= MIN)[0];
+    const ownOk = s.own_q >= MIN;
     const topAsk = s.asks[0];
     const fix = s.campaigns.slice(0, 3);
     const leads = s.leads.slice(0, 3);
@@ -57,8 +58,10 @@
       <div class="au-kpis">
         <div class="au-k hot"><small>Missed sales (estimate)</small><b>${money(s.waiting)}</b><span>${fmt(s.waiting)} unanswered buying questions × ${CONV}% × Rs ${fmt(PRICE)} a pair</span></div>
         <div class="au-k"><small>Audience health</small><b style="color:${scoreColor(h.score)}">${h.score}<em>/100</em></b><span>#${h.rank} of ${D.brands.length} brands we track</span></div>
-        <div class="au-k"><small>Buying questions answered on your own videos</small><b>${rate}</b><span>${s.own_q ? (s.own_answered ? "most still need a reply" : "not one has had a reply") : "no buying questions on your channel yet"}</span></div>
-        <div class="au-k"><small>Most-asked city</small><b>${city ? esc(city.city) : "–"}</b><span>${city ? `${city.n} shoppers named it` : "no city named yet"}</span></div>
+        ${ownOk ? `<div class="au-k"><small>Buying questions answered on your own videos</small><b>${s.own_answered} of ${s.own_q}</b><span>${s.own_answered ? "most still need a reply" : "not one has had a reply"}</span></div>`
+          : `<div class="au-k"><small>Buying questions on creators' videos</small><b>${fmt(s.creator_q)}</b><span>where brands rarely reply</span></div>`}
+        ${city ? `<div class="au-k"><small>Most-asked city</small><b>${esc(city.city)}</b><span>${city.n} shoppers named it</span></div>`
+          : `<div class="au-k"><small>Top question</small><b>${topAsk ? esc(topAsk.label) : "–"}</b><span>${topAsk ? `${fmt(topAsk.n)} comments ask this` : ""}</span></div>`}
       </div>
     </section>
 

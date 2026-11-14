@@ -59,9 +59,9 @@
   const PAGES = [
     { grp: "Workspace" },
     { id: "today", label: "Today" }, { id: "inbox", label: "Leads inbox", count: true }, { id: "customers", label: "Your customers" },
-    { id: "content", label: "Post this, not that" }, { id: "competitors", label: "Competitors" }, { id: "campaigns", label: "Campaign ideas" },
+    { id: "competitors", label: "Competitors" }, { id: "campaigns", label: "Campaigns & creators" },
     { grp: "Share" }, { id: "digest", label: "Weekly digest" }, { id: "report", label: "Client report" },
-    { grp: "About" }, { id: "start", label: "Switch brand" }, { id: "settings", label: "Settings" }, { id: "how", label: "How it works" },
+    { grp: "About" }, { id: "settings", label: "Settings" }, { id: "how", label: "How it works" },
   ];
   const TABS = ["today", "inbox", "customers", "campaigns", "report"];
   const TAB_LABEL = { today: "Today", inbox: "Leads", customers: "Customers", campaigns: "Ideas", report: "Report" };
@@ -76,6 +76,19 @@
   };
 
   const W = () => D.spaces[S.ws];
+  /* honest-numbers rule: a finding needs at least MIN comments behind it, otherwise show a stronger fact */
+  const MIN = 5;
+  const strongCities = w => w.cities.filter(c => c.n >= MIN);
+  function placeCard(w) {
+    const c = strongCities(w)[0];
+    if (c) return { l: "Most-asked city", v: c.city, n: `${c.n} shoppers named ${c.city}` };
+    const a = w.asks[0];
+    return { l: "Top question", v: a ? a.label : "–", n: a ? `${fmt(a.n)} comments ask this` : "" };
+  }
+  function replyCard(w) {
+    if (w.own_q >= MIN) return { l: "Your reply rate", v: pct(w.own_answered / w.own_q), n: `${w.own_answered} of ${w.own_q} buying questions answered on your own videos`, tone: "bad" };
+    return { l: "Asked on creator videos", v: fmt(w.creator_q), n: "buying questions under creators' videos, where brands rarely reply", tone: "warm" };
+  }
   const money = n => {
     const x = n * (S.conv / 100) * S.price;
     return x >= 100000 ? `Rs ${(x / 100000).toFixed(1)} lakh` : `Rs ${fmt(Math.round(x))}`;
@@ -167,7 +180,7 @@
   function trendLine(w) {
     const hist = (D.history || []).map(h => h[S.ws]).filter(Boolean);
     if (hist.length < 2) return `<div class="sub" style="margin-top:4px">Live data · updated ${ago(D.updated)} · refreshes every week</div>`;
-    return `<div class="trend">${sparkline(hist.map(h => h.waiting))}<span><b>${fmt(w.new_buyers)}</b> new buying question${w.new_buyers === 1 ? "" : "s"} posted since the last update · updated ${ago(D.updated)}</span></div>`;
+    return `<div class="trend">${sparkline(hist.map(h => h.waiting))}<span>${w.new_buyers ? `<b>${fmt(w.new_buyers)}</b> new buying question${w.new_buyers === 1 ? "" : "s"} posted since the last update` : "No new buying questions since the last update"} · updated ${ago(D.updated)}</span></div>`;
   }
   function healthCard() {
     const h = health();
@@ -179,13 +192,11 @@
   }
   function today() {
     const w = W();
-    const rate = w.own_q ? w.own_answered / w.own_q : null;
     const seen = new Set();
     const tick = inboxItems().filter(m => m.ask !== "Complaint" && m.text.length <= 60 && m.text.length >= 12 && !seen.has(m.text.toLowerCase()) && seen.add(m.text.toLowerCase())).slice(0, 24);
     const bubbles = tick.map(m => `<span class="bubble"><i>${esc(m.ask)}</i>${esc(m.text)}</span>`).join("");
     const pseen = new Set(), preview = inboxItems().filter(m => m.ask !== "Complaint" && m.text.length > 8 && m.text.length < 140 && !pseen.has(m.text.toLowerCase()) && pseen.add(m.text.toLowerCase())).slice(0, 3);
-    const ready = w.segments.filter(s => s.tone === "hot").sort((a, b) => b.people - a.people).slice(0, 6);
-    const city = w.cities[0];
+    const pc = placeCard(w), rc = replyCard(w);
     return `<div class="fade"><div class="grid">
       <section class="hero s8">
         <span class="kicker">● ${w.new_buyers ? `${fmt(w.new_buyers)} new buyer${w.new_buyers === 1 ? "" : "s"} since the last update` : "Sales slipping away right now"}</span>
@@ -199,23 +210,18 @@
       </section>
       <div class="side-stats s4">
         ${healthCard()}
-        <div class="stat bad"><div class="l">Your reply rate</div><div class="v">${rate === null ? "–" : pct(rate)}</div><div class="n">${w.own_q ? `${w.own_answered} of ${w.own_q} buying questions answered on your own videos` : "No buying questions on your own videos yet"}</div></div>
-        <div class="stat good"><div class="l">Hottest city</div><div class="v">${city ? esc(city.city) : "–"}</div><div class="n">${city ? `${city.n} shoppers asked about ${esc(city.city)}` : "No city named yet"}</div></div>
+        <div class="stat ${rc.tone}"><div class="l">${rc.l}</div><div class="v">${rc.v}</div><div class="n">${rc.n}</div></div>
+        <div class="stat good"><div class="l">${pc.l}</div><div class="v">${esc(pc.v)}</div><div class="n">${esc(pc.n)}</div></div>
       </div>
 
-      <section class="panel s5"><div class="panel-h"><h2>Alerts</h2><span>${D.history && D.history.length > 1 ? "since the last update" : "last 30 days of data"}</span></div>
-        ${w.alerts.map(a => `<a class="alert" href="#${a.go}"><div class="ic ${a.tone}">${alertIcon(a)}</div><p>${esc(a.text)}</p></a>`).join("") || '<p class="note">All quiet.</p>'}</section>
-      <section class="panel s7"><div class="panel-h"><h2>Buyers waiting for you</h2><a class="more" href="#inbox">Open inbox (${fmt(w.waiting)})</a></div>
+      ${w.alerts.length ? `<section class="panel s5"><div class="panel-h"><h2>Alerts</h2><span>${D.history && D.history.length > 1 ? "since the last update" : "last 30 days of data"}</span></div>
+        ${w.alerts.map(a => `<a class="alert" href="#${a.go}"><div class="ic ${a.tone}">${alertIcon(a)}</div><p>${esc(a.text)}</p></a>`).join("")}</section>` : ""}
+      <section class="panel ${w.alerts.length ? "s7" : "s12"}"><div class="panel-h"><h2>Buyers waiting for you</h2><a class="more" href="#inbox">Open inbox (${fmt(w.waiting)})</a></div>
         ${preview.map(m => `<div class="msg">${avatar(m.brand, true)}<div><div class="meta"><b>${esc(m.brand)}</b>${m.new ? '<span class="tag new">New</span>' : ""}<span class="tag ${tagFor(m.ask)}">${esc(m.ask)}</span><span>${esc(m.where)}</span></div>
           <div class="txt">${esc(m.text)}</div><div class="rep"><b>Suggested reply:</b> ${esc(reply(m.need, m.brand)).slice(0, 120)}…</div></div><span class="note">${esc(m.date.slice(5))}</span></div>`).join("") || '<p class="note">No waiting buyers here.</p>'}</section>
 
-      <section class="panel s7"><div class="panel-h"><h2>Do these 3 things today</h2><a class="more" href="#campaigns">All campaign ideas</a></div>
-        ${w.campaigns.slice(0, 3).map(c => `<div class="camp"><div class="tags"><span class="tag ${c.impact.startsWith("High") ? "hot" : "warm"}">${c.impact}</span><span class="tag ok">${c.effort}</span><span class="tag cool">${esc(c.channel)}</span></div><h3>${esc(c.title)}</h3><p>${esc(c.do)}</p><div class="why">${esc(fillMoney(c.why))}</div></div>`).join("")}</section>
-      <div class="s5" style="display:grid;gap:18px;align-content:start">
-        <section class="panel"><div class="panel-h"><h2>Ready-to-buy customers</h2><a class="more" href="#customers">All groups</a></div>${hbars(ready.map(s => ({ label: s.name, icon: SICON[s.name], n: s.people, hot: true })))}</section>
-        <section class="panel"><div class="panel-h"><h2>Creators to partner with</h2><a class="more" href="#content">See all</a></div>
-          ${w.leads.slice(0, 3).map((l, i) => `<div class="lead"><span class="rk ${i === 0 ? "top" : ""}">${i + 1}</span>${avatar(l.channel, true)}<div><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.channel)}</a><div class="sub">${esc(l.brands)}</div></div><div class="n">${l.buyers}<small>buyers asked</small></div></div>`).join("") || '<p class="note">No creator videos for this brand.</p>'}</section>
-      </div>
+      <section class="panel s12"><div class="panel-h"><h2>Do these 3 things today</h2><a class="more" href="#campaigns">All campaign ideas</a></div>
+        <div class="camp3">${w.campaigns.slice(0, 3).map(c => `<div class="camp"><div class="tags"><span class="tag ${c.impact.startsWith("High") ? "hot" : "warm"}">${c.impact}</span><span class="tag ok">${c.effort}</span><span class="tag cool">${esc(c.channel)}</span></div><h3>${esc(c.title)}</h3><p>${esc(c.do)}</p><div class="why">${esc(fillMoney(c.why))}</div></div>`).join("")}</div></section>
     </div></div>`;
   }
   function countUp() {
@@ -272,7 +278,8 @@
   /* ---------------- CUSTOMERS ---------------- */
   function customers() {
     const w = W();
-    if (!w.segments.find(s => s.name === S.seg)) S.seg = w.segments[0]?.name;
+    const big = w.segments.filter(s => s.people >= MIN), small = w.segments.filter(s => s.people < MIN);
+    if (!big.find(s => s.name === S.seg)) S.seg = big[0]?.name;
     const sel = w.segments.find(s => s.name === S.seg);
     const ready = w.segments.filter(s => s.tone === "hot").reduce((a, s) => a + s.people, 0);
     return `<div class="fade">${header("Your customers", `${fmt(w.people)} people commented. Here's who they are and what each group needs.`)}
@@ -282,7 +289,8 @@
         <div class="stat s3 bad"><div class="l">Need care</div><div class="v">${fmt((w.segments.find(s => s.name === "Unhappy customers") || {}).people || 0)}</div><div class="n">complaints to fix</div></div>
         <div class="stat s3 good"><div class="l">Fans</div><div class="v">${fmt(w.segments.filter(s => s.badge === "Fans").reduce((a, s) => a + s.people, 0))}</div><div class="n">praise and love</div></div>
       </div>
-      <div class="tiles">${w.segments.map(s => `<button type="button" class="tile ${s.name === S.seg ? "on" : ""}" data-seg="${esc(s.name)}"><div class="h"><span class="e">${segIcon(s)}</span><span class="tag ${s.tone}">${s.badge}</span></div><div class="nm">${esc(s.name)}</div><div class="big">${fmt(s.people)} <small>people</small></div><div class="q">${s.quote ? `“${esc(s.quote)}”` : ""}</div><div class="do"><b>Do:</b> ${esc(s.todo)}</div></button>`).join("")}</div>
+      <div class="tiles">${big.map(s => `<button type="button" class="tile ${s.name === S.seg ? "on" : ""}" data-seg="${esc(s.name)}"><div class="h"><span class="e">${segIcon(s)}</span><span class="tag ${s.tone}">${s.badge}</span></div><div class="nm">${esc(s.name)}</div><div class="big">${fmt(s.people)} <small>people</small></div><div class="q">${s.quote ? `“${esc(s.quote)}”` : ""}</div><div class="do"><b>Do:</b> ${esc(s.todo)}</div></button>`).join("")}</div>
+      ${small.length ? `<p class="note small-groups">Smaller groups (under ${MIN} people, too few to act on yet): ${small.map(s => `${esc(s.name)} (${s.people})`).join(", ")}.</p>` : ""}
       ${sel ? `<section class="panel" style="margin-top:18px" id="hear"><div class="panel-h"><h2><i class="hic">${segIcon(sel)}</i>${esc(sel.name)}: in their words</h2><span>${fmt(sel.comments)} comments</span></div>
         <div class="grid">${sel.examples.map(e => `<div class="s6 cmt" style="font-size:.93rem"><small>${esc(e.brand)} · ${esc(e.date)}</small>${esc(e.text)}</div>`).join("")}</div></section>` : ""}
     </div>`;
@@ -292,7 +300,7 @@
   function content() {
     const w = W(), st = w.stats;
     const card = (c, tone) => `<div class="pc"><div class="t">${esc(c.type)} <span class="tag ${tone}">${c.format}</span></div><div class="m"><div><b>${c.cm.toFixed(2)}</b>comments / 1k views</div><div><b>${pct(c.hi)}</b>buying questions</div><div><b>${fmt(c.views)}</b>median views</div><div><b>${c.n}</b>videos</div></div></div>`;
-    return `<div class="fade">${header("Post this, not that", "What gets shoppers talking and asking to buy, and the creators who already bring them in.")}
+    return `<div class="page-h" style="margin-top:40px"><div><h1>Content and creators</h1><p>What gets shoppers talking and asking to buy, and the creators who already bring them in.</p></div></div>
       ${st ? `<div class="big3">
         <div class="stat"><div class="v">${Math.round(st.cm_ratio)}×</div><div class="n">more comments per view on creator videos than on brand videos</div></div>
         <div class="stat"><div class="v">${pct(st.hi_creator)} vs ${pct(st.hi_brand)}</div><div class="n">of comments are buying questions on creator vs brand videos</div></div>
@@ -300,12 +308,10 @@
       <div class="grid">
         <section class="panel s6"><div class="panel-h"><h2><i class="hic ok">${svg("up")}</i>Post more of this</h2><span>most conversation per view</span></div>${w.post_more.map(c => card(c, "ok")).join("") || '<p class="note">Not enough videos.</p>'}</section>
         <section class="panel s6"><div class="panel-h"><h2><i class="hic bad">${svg("down")}</i>Less of this</h2><span>views without conversation</span></div>${w.post_less.map(c => card(c, "grey")).join("") || '<p class="note">Not enough videos.</p>'}</section>
-        <section class="panel s6"><div class="panel-h"><h2>Creator leaderboard</h2><span>buyers asking on their videos</span></div>
-          ${w.leads.slice(0, 8).map((l, i) => `<div class="lead"><span class="rk ${i < 3 ? "top" : ""}">${i + 1}</span>${avatar(l.channel, true)}<div><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.channel)}</a><div class="sub">${esc(l.brands)} · creator replies to ${pct(l.answered)}</div></div><div class="n">${l.buyers}<small>buyers asked</small></div></div>`).join("") || '<p class="note">No creator videos for this brand.</p>'}
+        <section class="panel s12"><div class="panel-h"><h2>Creator leaderboard</h2><span>buyers asking on their videos</span></div>
+          ${w.leads.slice(0, 6).map((l, i) => `<div class="lead"><span class="rk ${i < 3 ? "top" : ""}">${i + 1}</span>${avatar(l.channel, true)}<div><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.channel)}</a><div class="sub">${esc(l.brands)} · creator replies to ${pct(l.answered)}</div></div><div class="n">${l.buyers}<small>buyers asked</small></div></div>`).join("") || '<p class="note">No creator videos for this brand.</p>'}
           ${w.leads.length ? '<div class="row-btns"><button class="btn ghost sm" id="pitch" type="button">Copy a partnership message</button></div>' : ""}</section>
-        <section class="panel s6"><div class="panel-h"><h2>Standout posts</h2><span>far ahead of similar posts</span></div>
-          ${w.standouts.map(s => `<div class="pc"><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title.slice(0, 80))}</a><div class="s">${esc(s.brand)} · ${esc(s.channel)} · ${fmt(s.views)} views</div><div class="w">${svg("up")}${esc(s.why)}</div></div>`).join("") || '<p class="note">No standout posts here.</p>'}</section>
-      </div></div>`;
+      </div>`;
   }
   function wireContent() {
     const b = $("#pitch"); if (!b) return;
@@ -349,7 +355,7 @@
         <h3>${esc(c.title)}</h3><p>${esc(c.do)}</p><div class="why">Why: ${esc(fillMoney(c.why))}</div>
         <div class="copy"><div class="c"><div><small>ENGLISH</small><span id="en${i}">${esc(c.en)}</span></div><button class="btn ghost sm" data-copy="en${i}" type="button">Copy</button></div>
         <div class="c"><div><small>ROMAN URDU</small><span id="ru${i}">${esc(c.ru)}</span></div><button class="btn ghost sm" data-copy="ru${i}" type="button">Copy</button></div></div></section>`).join("")}</div>
-      <section class="panel" style="margin-top:18px"><div class="panel-h"><h2>Plan the budget</h2></div><p class="note" style="font-size:.92rem">Project 2 splits the ad budget across Facebook, TikTok, Instagram, Google and YouTube for the same brands and writes ads around the same angles.</p><div class="row-btns"><a class="btn ghost" href="${D.links.p2app}" target="_blank" rel="noopener">Open the ad budget optimizer</a></div></section></div>`;
+      ${content()}</div>`;
   }
 
   /* ---------------- WEEKLY DIGEST (email preview) ---------------- */
@@ -357,7 +363,7 @@
     const lines = [`Joota Pulse weekly digest: ${w.label}`, `Data updated ${D.date}`, "",
       `${w.waiting} buyers are waiting for a reply (about ${money(w.waiting)} in missed sales).`,
       `Brand health: ${health().score}/100. Reply rate on your own videos: ${w.own_q ? pct(w.own_answered / w.own_q) : "no data"}.`, "", "This week:"]
-      .concat(w.alerts.map(a => `- ${a.text}`), ["", "Do these first:"], w.campaigns.slice(0, 3).map((c, i) => `${i + 1}. ${c.title}: ${c.do}`), ["", `Open the dashboard: ${location.href.split("#")[0]}`]);
+      .concat(w.alerts.length ? w.alerts.map(a => `- ${a.text}`) : ["- A quiet week: no new spikes."], ["", "Do these first:"], w.campaigns.slice(0, 3).map((c, i) => `${i + 1}. ${c.title}: ${c.do}`), ["", `Open the dashboard: ${location.href.split("#")[0]}`]);
     return lines.join("\n");
   }
   function digest() {
@@ -369,7 +375,7 @@
         <div class="hd"><div><b>From:</b> Joota Pulse &lt;digest@jootapulse&gt;</div><div><b>To:</b> marketing team, ${esc(w.label)}</div><div><b>Subject:</b> ${fmt(w.waiting)} buyers are waiting for your reply</div></div>
         <div class="bd"><h2>Good morning! Here's your week on YouTube.</h2>
           <div class="kpis"><div class="kpi"><b style="color:var(--coral)">${money(w.waiting)}</b><span>missed sales (estimate)</span></div><div class="kpi"><b>${fmt(w.waiting)}</b><span>buyers waiting</span></div><div class="kpi"><b style="color:${scoreColor(h.score)}">${h.score}/100</b><span>brand health</span></div></div>
-          <h3>What happened</h3>${w.alerts.map(a => `<div class="alert"><div class="ic ${a.tone}">${alertIcon(a)}</div><p>${esc(a.text)}</p></div>`).join("")}
+          <h3>What happened</h3>${w.alerts.map(a => `<div class="alert"><div class="ic ${a.tone}">${alertIcon(a)}</div><p>${esc(a.text)}</p></div>`).join("") || '<p class="note">A quiet week: no new spikes in buyers, complaints or creator activity.</p>'}
           <h3>Answer these first</h3>${leads.map(m => `<div class="msg">${avatar(m.brand, true)}<div><div class="meta"><b>${esc(m.brand)}</b><span class="tag ${tagFor(m.ask)}">${esc(m.ask)}</span></div><div class="txt">${esc(m.text)}</div></div><span></span></div>`).join("")}
           <h3>Your 3 actions</h3>${w.campaigns.slice(0, 3).map((c, i) => `<div class="kv"><span><b>${i + 1}. ${esc(c.title)}</b><br><span class="note">${esc(c.do)}</span></span></div>`).join("")}
           <div class="row-btns"><a class="btn primary" href="#inbox">Open the leads inbox</a></div></div></div></div>`;
@@ -378,19 +384,18 @@
   /* ---------------- REPORT ---------------- */
   function report() {
     const w = W(), h = health();
-    const rate = w.own_q ? pct(w.own_answered / w.own_q) : "–";
-    const segs = w.segments.filter(s => s.tone === "hot" || s.tone === "bad").sort((a, b) => b.people - a.people).slice(0, 5);
+    const segs = w.segments.filter(s => (s.tone === "hot" || s.tone === "bad") && s.people >= MIN).sort((a, b) => b.people - a.people).slice(0, 5);
     return `<div class="fade">${header("Client report", "A one-page snapshot to send to the brand. Switch the workspace to make one for a single brand.",
       `<div class="row-btns no-print" style="margin:0">${W().brands.length === 1 ? `<a class="btn ghost" href="audit.html?brand=${encodeURIComponent(W().brands[0])}" target="_blank" rel="noopener">${svg("share")}Open the shareable audit</a>` : ""}<button class="btn primary" id="print" type="button">Download PDF</button></div>`)}
       <article class="sheet"><div class="hd"><small>JOOTA PULSE · AUDIENCE INTELLIGENCE</small><h2>Client snapshot: ${esc(w.label)}</h2><p>Based on ${fmt(w.comments)} real public YouTube comments · data updated ${esc(D.date)}</p></div>
       <div class="bd"><div class="k4">
         <div class="k"><div class="l">Missed sales (estimate)</div><div class="v">${money(w.waiting)}</div><div class="n">${fmt(w.waiting)} buyers waiting</div></div>
         <div class="k"><div class="l">Brand health</div><div class="v">${h.score}/100</div><div class="n">${h.single ? `#${h.rank} of ${D.brands.length} brands` : `average of ${h.n} brands`}</div></div>
-        <div class="k"><div class="l">Reply rate, own videos</div><div class="v">${rate}</div><div class="n">${w.own_answered} of ${w.own_q} answered</div></div>
-        <div class="k"><div class="l">Hottest city</div><div class="v">${w.cities[0] ? esc(w.cities[0].city) : "–"}</div><div class="n">${w.cities[0] ? w.cities[0].n + " mentions" : ""}</div></div></div>
+        <div class="k"><div class="l">${replyCard(w).l}</div><div class="v">${replyCard(w).v}</div><div class="n">${w.own_q >= MIN ? `${w.own_answered} of ${w.own_q} answered` : "brands rarely reply there"}</div></div>
+        <div class="k"><div class="l">${placeCard(w).l}</div><div class="v">${esc(placeCard(w).v)}</div><div class="n">${esc(placeCard(w).n)}</div></div></div>
         <h3>Do these first</h3>${w.campaigns.slice(0, 3).map((c, i) => `<div class="act"><i>${i + 1}</i><div><b>${esc(c.title)}: ${esc(c.do)}</b><span>${esc(fillMoney(c.why))}</span></div></div>`).join("")}
         <div class="two"><div><h3>Who your customers are</h3>${segs.map(s => `<div class="li"><span>${esc(s.name)}</span><b>${fmt(s.people)}</b></div>`).join("")}</div>
-        <div><h3>Where they are</h3>${w.cities.slice(0, 4).map(c => `<div class="li"><span>${esc(c.city)}</span><b>${c.n}</b></div>`).join("") || '<p class="note">No cities named.</p>'}
+        <div><h3>Where they are</h3>${strongCities(w).slice(0, 4).map(c => `<div class="li"><span>${esc(c.city)}</span><b>${c.n}</b></div>`).join("") || `<p class="note">Too few city mentions to rank (under ${MIN} each).</p>`}
         <h3>Creators to partner with</h3>${w.leads.slice(0, 3).map(l => `<div class="li"><span>${esc(l.channel)}</span><b>${l.buyers} buyers</b></div>`).join("") || '<p class="note">None.</p>'}</div></div>
         <div class="ft">Missed sales = unanswered buying questions × ${S.conv}% who would buy × Rs ${fmt(S.price)} per pair; an estimate, not a measured figure. Brand health = buying interest (40%), few complaints (35%) and fans (25%), each relative to the other brands. Source: public YouTube comments via the official YouTube Data API; commenter names removed. ${esc(D.links.repo)}</div>
       </div></article></div>`;
@@ -430,7 +435,7 @@
           <li><b>Roman Urdu spelling varies,</b> so some comments are missed or mis-tagged; ${pct(D.limits.unlabelled)} stay unlabelled.</li>
           <li><b>Patterns, not proof:</b> "prices shown → fewer price questions" is a correlation worth A/B testing.</li>
           <li><b>Small groups:</b> size questions (${fmt(D.limits.size_q)}) and complaints (${fmt(D.limits.complaints)}) are small samples.</li></ul>
-          <div class="row-btns"><a class="btn ghost" href="${D.links.repo}" target="_blank" rel="noopener">Code on GitHub</a><a class="btn ghost" href="${D.links.streamlit}" target="_blank" rel="noopener">Analyst version (Streamlit)</a><a class="btn ghost" href="${D.links.p1}" target="_blank" rel="noopener">Project 1</a><a class="btn ghost" href="${D.links.p2}" target="_blank" rel="noopener">Project 2</a></div></section>
+          <div class="row-btns"><a class="btn ghost" href="${D.links.repo}" target="_blank" rel="noopener">Code on GitHub</a><a class="btn ghost" href="${D.links.streamlit}" target="_blank" rel="noopener">Analyst version (Streamlit)</a><a class="btn ghost" href="${D.links.p1}" target="_blank" rel="noopener">Project 1</a><a class="btn ghost" href="${D.links.p2}" target="_blank" rel="noopener">Project 2</a><a class="btn ghost" href="${D.links.p2app}" target="_blank" rel="noopener">Ad budget optimizer</a></div></section>
       </div></div>`;
   }
   function benchNote(b) {
@@ -555,7 +560,7 @@
   }
 
   /* ---------------- router ---------------- */
-  const VIEWS = { start, today, inbox, customers, content, competitors, campaigns, digest, report, how, settings };
+  const VIEWS = { start, today, inbox, customers, content: campaigns, competitors, campaigns, digest, report, how, settings };
   function render() {
     let id = location.hash.slice(1) || "today";
     if (!VIEWS[id]) id = "today";
@@ -568,7 +573,7 @@
     if (id === "today") countUp();
     if (id === "inbox") wireInbox();
     if (id === "customers") $$("[data-seg]").forEach(b => b.onclick = () => { S.seg = b.dataset.seg; render(); $("#hear")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); });
-    if (id === "content") wireContent();
+    if (id === "content" || id === "campaigns") wireContent();
     if (id === "campaigns") $$("[data-copy]").forEach(b => b.onclick = () => copy($("#" + b.dataset.copy).textContent, "Ad copy copied."));
     if (id === "competitors") drawCompetitors();
     if (id === "how") drawHow();

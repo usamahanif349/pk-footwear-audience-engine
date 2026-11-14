@@ -56,6 +56,7 @@ SEGMENTS = [  # name, emoji, badge, tone, what to do, needs that define the grou
     ("Ad & meme crowd", "📺", "Buzz", "cool", "Reuse the buzz in throwback content.", {"nostalgia_ad"}),
     ("Supporters (general praise)", "👏", "Fans", "cool", "Thank them and point to the shop.", {"general_praise", "praise_content"}),
 ]
+MIN_N = 5  # a city or group needs at least this many comments before it is shown as a finding
 NOT_SHOES = r"\d:\d\d|co ?-?ord|dress|suit|shirt|kurt|lawn|dupatta|lehenga|frock|trouser|jeans|bag|makeup|jewel"
 CITY = {"Lahore": r"lahore|lhr", "Karachi": r"karachi|khi", "Faisalabad": r"faisalabad|fsd", "Rawalpindi": r"pindi|rawalpindi",
         "Islamabad": r"islamabad|isb", "Hyderabad": r"hyderabad", "Multan": r"multan", "Sialkot": r"sialkot",
@@ -94,7 +95,7 @@ def last_run_date(com):
 def cities(cust):
     t = cust.text.astype(str).str.lower()
     out = [(c, int(t.str.contains(rf"\b(?:{p})\b").sum())) for c, p in CITY.items()]
-    return [{"city": c, "n": n} for c, n in sorted(out, key=lambda x: -x[1]) if n]
+    return [{"city": c, "n": n} for c, n in sorted(out, key=lambda x: -x[1]) if n >= MIN_N]
 
 
 def leads(cust):
@@ -112,8 +113,9 @@ def campaigns(cust, vids, picked, label, waiting_n, buy_q):
     out = []
     own = buy_q[buy_q.post_type == BRAND_POST]
     out.append(dict(id="reply", title="24-hour reply promise", impact="High impact", effort="Low effort", channel="YouTube comments",
-                    why=f"{waiting_n:,} buying questions are waiting for a reply ({{MONEY}} in missed sales). On the brands' own "
-                        f"videos, {int(own.answered.sum())} of {len(own)} were answered.",
+                    why=f"{waiting_n:,} buying questions are waiting for a reply ({{MONEY}} in missed sales)."
+                        + (f" On {'your' if len(picked) == 1 else 'the brands’'} own videos, {int(own.answered.sum())} of {len(own)} were answered."
+                           if len(own) >= MIN_N else ""),
                     do="Clear the Leads inbox every morning with the ready replies.",
                     en="Got a question about price, size or delivery? Comment below and we'll reply within 24 hours. 💬",
                     ru="Price, size ya delivery ka sawal hai? Comment karein, hum 24 ghante mein jawab denge. 💬"))
@@ -133,22 +135,23 @@ def campaigns(cust, vids, picked, label, waiting_n, buy_q):
         out.append(dict(id="city", title=f"{c1}{' & ' + c2 if c2 else ''} city ads", impact="Medium impact", effort="Low effort",
                         channel="Instagram + Facebook ads",
                         why=f"{int((cust.segment == 'Where-can-I-buy askers').sum()):,} comments ask where to buy; "
-                            + ", ".join(f"{x['city']} ({x['n']})" for x in cl[:3]) + " are named most.",
+                            + ", ".join(f"{x['city']} ({x['n']})" for x in cl[:3]) + (" are" if len(cl) > 1 else " is") + " named most.",
                         do="Run location-targeted ads that name the branch and the order link.",
                         en=f"Now in {c1}! Visit our nearest store or order online with cash on delivery. 📍",
                         ru=f"Ab {c1} mein! Qareebi store aayein ya online order karein, cash on delivery ke saath. 📍"))
     deal = int((cust.segment == "Deal hunters").sum())
     until = int(cust.text.str.lower().str.contains(r"kab tak|kb tk|kab tk|kb tak|until when|till when|last date").sum())
-    if deal:
+    if deal >= MIN_N:
         out.append(dict(id="sale", title="Sale countdown posts", impact="Medium impact", effort="Low effort", channel="Stories + Shorts",
-                        why=f"{deal:,} deal-hunter comments; {until} ask when a sale starts or ends ('sale kab tak hai?').",
+                        why=f"{deal:,} comments ask about sales and discounts"
+                            + (f"; {until} ask when a sale starts or ends ('sale kab tak hai?')." if until >= MIN_N else "."),
                         do="Post the end date on day 1, then a 3-2-1 countdown with sizes left.",
                         en="⏳ Only 3 days left! Flat 30% off on best-sellers. Sale ends Sunday night. Shop now.",
                         ru="⏳ Sirf 3 din baqi! Best-sellers par flat 30% off. Sale Sunday raat khatam. Abhi order karein."))
     v = vids.copy()
     v["pt"] = v.title.str.lower().str.contains(r"price|\brs\.?\s?\d|\d{3,5}\s?(?:rs|pkr)")
     x = cust.merge(v[["video_id", "pt"]], on="video_id")
-    if x.pt.any() and (~x.pt).any():
+    if x.pt.sum() >= 100 and (~x.pt).sum() >= 100:  # both groups big enough to compare
         a, b = (x[x.pt].need == "price").mean(), (x[~x.pt].need == "price").mean()
         if a < b:
             out.append(dict(id="prices", title="Prices on screen test", impact="Medium impact", effort="Low effort", channel="Shorts + Reels",
@@ -164,7 +167,7 @@ def campaigns(cust, vids, picked, label, waiting_n, buy_q):
                         en="Remember this one? 😄 The classic is back, with a 2026 twist. Same comfort, new style.",
                         ru="Ye ad yaad hai? 😄 Classic wapas aa gaya, 2026 ke andaz mein. Wahi aaram, naya style."))
     size = int((cust.segment == "Size & fit askers").sum())
-    if size:
+    if size >= MIN_N:
         out.append(dict(id="size", title="Size guide reel", impact="Low impact", effort="Low effort", channel="Reels + pinned post",
                         why=f"{size} comments ask about size or fit; wrong sizes mean exchanges and bad reviews.",
                         do="Post a 15-second EU / UK / PK size chart reel.",
@@ -218,9 +221,9 @@ def alerts(cust, buy_q, own, run_date, newest):
     w = in_win(buy_q)
     if len(w):
         n = int((~w.answered).sum())
-        out.append(dict(icon="🔥", tone="hot", text=f"{n} buyers asked about price, stock or delivery {when} and are still waiting.", go="inbox"))
+        out.append(dict(icon="🔥", tone="hot", text=f"{n} buyer{'s' if n != 1 else ''} asked about price, stock or delivery {when} and {'are' if n != 1 else 'is'} still waiting.", go="inbox"))
     cl = cities(in_win(cust))
-    if cl and cl[0]["n"] >= 2:
+    if cl:
         out.append(dict(icon="📍", tone="cool", text=f"{cl[0]['city']} is the most-asked city {when} ({cl[0]['n']} mentions).", go="customers"))
     comp = in_win(cust[cust.need == "complaint"])
     if len(comp):
@@ -228,8 +231,8 @@ def alerts(cust, buy_q, own, run_date, newest):
     cw = w[w.post_type == CREATOR_POST]
     if len(cw):
         top = cw.channel.value_counts()
-        out.append(dict(icon="🎬", tone="cool", text=f"{top.index[0]}'s videos drew {int(top.iloc[0])} buyer questions {when}. A partnership lead.", go="content"))
-    if len(own):
+        out.append(dict(icon="🎬", tone="cool", text=f"{str(top.index[0]).strip()}'s videos drew {int(top.iloc[0])} buyer question{'s' if int(top.iloc[0]) != 1 else ''} {when}. A partnership lead.", go="content"))
+    if len(own) >= MIN_N:
         un = int((~own.answered).sum())
         if un:
             out.append(dict(icon="💤", tone="warm", text=f"{un} of {len(own)} buying questions on your own videos never got a reply.", go="inbox"))
