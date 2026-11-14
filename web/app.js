@@ -16,12 +16,15 @@
 
   const ICON = {
     start: '<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>',
-    today: '<path d="M3 12l9-8 9 8M5 10v10h5v-6h4v6h5V10"/>',
-    inbox: '<path d="M3 13l3-8h12l3 8v6H3zM3 13h5l1 3h6l1-3h5"/>',
-    customers: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.3-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17.5" cy="9" r="2.6"/><path d="M16 14.6c2.7.1 4.6 1.8 5.4 4.9"/>',
+    today: '<path d="M2.5 17.5v-6c0-1.4 1.1-2.5 2.5-2.5h.7c.9 0 1.6.6 1.8 1.4.3 1.1 1.3 1.9 2.5 1.9h.4L12.6 8l2.3 1.8 2.5 2.6c.8.8 1.9 1.3 3 1.5 1.3.2 2.1 1.3 2.1 2.6v1H2.5z"/><path d="M2.5 15.3h19.6M12.7 10.6l-1 1.3M14.6 12l-1 1.3"/>',
+    inbox: '<path d="M2.5 7.5h19v3h-19z"/><path d="M4 10.5v9.5h16v-9.5"/><path d="M9.5 14h5"/>',
+    customers: '<path d="M7.5 2.8c1.7 0 2.6 2 2.6 4.3s-1 4.1-2.6 4.1S4.9 9.4 4.9 7.1s.9-4.3 2.6-4.3z"/><path d="M5.6 13.6h3.8v1.3a1.9 1.9 0 01-3.8 0z"/><path d="M16.5 7.8c1.7 0 2.6 2 2.6 4.3s-1 4.1-2.6 4.1-2.6-1.8-2.6-4.1.9-4.3 2.6-4.3z"/><path d="M14.6 18.6h3.8v1.3a1.9 1.9 0 01-3.8 0z"/>',
     content: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z"/>',
-    competitors: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
-    campaigns: '<path d="M4 14c4-1 6-3 8-9 2 6 4 8 8 9-4 1-6 3-8 9-2-6-4-8-8-9z"/>',
+    competitors: '<path d="M2.5 20.5v-6h6v6M8.5 20.5V9.5h7v11M15.5 20.5v-4h6v4M2 20.5h20"/><path d="M12 3.2l.9 1.8 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z"/>',
+    campaigns: '<path d="M3 10.2v3.6c0 .6.4 1 1 1h2.5l7.5 4.2V5L6.5 9.2H4c-.6 0-1 .4-1 1z"/><path d="M17.5 9a4.2 4.2 0 010 6M20 6.5a8 8 0 010 11"/><path d="M6.5 14.8l1.3 4.7"/>',
+    whatsapp: '<path d="M3.5 20.5l1.2-4.2A8.5 8.5 0 1112 20.5a8.4 8.4 0 01-4.3-1.2z"/><path d="M9 8.6c.2-.4.6-.5.9-.3l.9 1.6c.1.3 0 .6-.2.8l-.5.5c.6 1.2 1.6 2.2 2.8 2.8l.5-.5c.2-.2.5-.3.8-.2l1.6.9c.3.2.4.6.2.9-.5 1-1.6 1.4-2.6 1a8.6 8.6 0 01-4.6-4.6c-.4-1 0-2.1 1-2.6z"/>',
+    check: '<path d="M20 6L9 17l-5-5"/>',
+    copy: '<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/>',
     digest: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
     report: '<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5"/>',
     how: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
@@ -76,6 +79,14 @@
   };
 
   const W = () => D.spaces[S.ws];
+  /* "mark as replied": kept on this device; keyed by brand + date + text so it survives the weekly refresh */
+  const keyOf = m => `${m.brand}|${m.date}|${m.text.slice(0, 48)}`;
+  let DONE = new Set(store.get("done", []));
+  const isDone = m => DONE.has(keyOf(m));
+  const toggleDone = m => { const k = keyOf(m); DONE.has(k) ? DONE.delete(k) : DONE.add(k); store.set("done", [...DONE]); };
+  const waitLeft = w => Math.max(0, w.waiting - D.inbox.filter(m => w.brands.includes(m.brand) && m.ask !== "Complaint" && isDone(m)).length);
+  const wa = text => `https://wa.me/?text=${encodeURIComponent(text)}`;
+  const SHOEBOX = `<svg class="empty-art" viewBox="0 0 120 90" aria-hidden="true"><path d="M14 34h92v46H14z" fill="var(--s2)" stroke="var(--line-2)" stroke-width="2"/><path d="M8 22h104v14H8z" fill="var(--violet-soft)" stroke="var(--violet)" stroke-width="2" stroke-linejoin="round"/><path d="M48 52h24" stroke="var(--violet)" stroke-width="4" stroke-linecap="round"/><path d="M60 6v10M44 10l4 7M76 10l-4 7" stroke="var(--coral)" stroke-width="3" stroke-linecap="round"/></svg>`;
   /* honest-numbers rule: a finding needs at least MIN comments behind it, otherwise show a stronger fact */
   const MIN = 5;
   const strongCities = w => w.cities.filter(c => c.n >= MIN);
@@ -146,8 +157,8 @@
   function nav(active) {
     const w = W();
     $("#nav").innerHTML = PAGES.map(p => p.grp ? `<div class="grp">${p.grp}</div>` :
-      `<a href="#${p.id}" class="${p.id === active ? "on" : ""}" ${p.id === active ? 'aria-current="page"' : ""}>${svg(p.id)}<span>${p.label}</span>${p.count && w ? `<span class="cnt">${fmt(w.waiting)}</span>` : ""}</a>`).join("");
-    $("#tabbar").innerHTML = TABS.map(id => `<a href="#${id}" class="${id === active ? "on" : ""}">${svg(id)}<span>${TAB_LABEL[id]}</span>${id === "inbox" && w ? `<span class="cnt">${fmt(w.waiting)}</span>` : ""}</a>`).join("");
+      `<a href="#${p.id}" class="${p.id === active ? "on" : ""}" ${p.id === active ? 'aria-current="page"' : ""}>${svg(p.id)}<span>${p.label}</span>${p.count && w ? `<span class="cnt">${fmt(waitLeft(w))}</span>` : ""}</a>`).join("");
+    $("#tabbar").innerHTML = TABS.map(id => `<a href="#${id}" class="${id === active ? "on" : ""}">${svg(id)}<span>${TAB_LABEL[id]}</span>${id === "inbox" && w ? `<span class="cnt">${fmt(waitLeft(w))}</span>` : ""}</a>`).join("");
     $("#ws-av").textContent = !S.ws ? "?" : S.ws === "all" ? "A" : S.ws === "core" ? "3" : initials(S.ws);
     $("#ws-av").style.background = S.ws && D.spaces[S.ws] && D.spaces[S.ws].brands.length === 1 ? colorOf(S.ws) : "";
     $("#ws-select").value = S.ws || "all";
@@ -242,13 +253,15 @@
       && (!S.q || m.text.toLowerCase().includes(S.q.toLowerCase())));
     if (!items.find(m => m.id === S.sel)) S.sel = items.length ? items[0].id : null;
     const m = items.find(x => x.id === S.sel);
-    const rows = items.slice(0, 300).map(x => `<button class="irow ${x.id === S.sel ? "on" : ""}" data-id="${x.id}" type="button">${avatar(x.brand, true)}<div><div class="top"><b>${esc(x.brand)}</b><span>${esc(x.date)}</span></div><div class="t">${esc(x.text)}</div><div class="tags">${x.new ? '<span class="tag new">New</span>' : ""}<span class="tag ${tagFor(x.ask)}">${esc(x.ask)}</span><span class="tag grey">${esc(x.where)}</span></div></div></button>`).join("");
-    return `<div class="fade">${header("Leads inbox", `${fmt(W().waiting)} buyers asked and are still waiting. Pick one, copy the reply, paste it on YouTube.`,
+    const answered = all.filter(isDone).length, share = all.length ? answered / all.length : 0;
+    const rows = items.slice(0, 300).map(x => `<button class="irow ${x.id === S.sel ? "on" : ""} ${isDone(x) ? "done" : ""}" data-id="${x.id}" type="button">${avatar(x.brand, true)}<div><div class="top"><b>${esc(x.brand)}</b><span>${esc(x.date)}</span></div><div class="t">${esc(x.text)}</div><div class="tags">${isDone(x) ? `<span class="tag ok">${svg("check")}Replied</span>` : ""}${x.new ? '<span class="tag new">New</span>' : ""}<span class="tag ${tagFor(x.ask)}">${esc(x.ask)}</span><span class="tag grey">${esc(x.where)}</span></div></div></button>`).join("");
+    return `<div class="fade">${header("Leads inbox", `${fmt(waitLeft(W()))} buyers are still waiting. Pick one, copy the reply, paste it on YouTube, tick it off.`,
       `<div class="seg" role="group" aria-label="Source">${["Everywhere", "Your videos", "Creator videos"].map(s => `<button type="button" data-src="${s}" class="${S.src === s ? "on" : ""}">${s}</button>`).join("")}</div>`)}
+      <div class="progress"><div class="pt"><b>${fmt(answered)} of ${fmt(all.length)}</b> answered${answered ? ` · ${fmt(all.length - answered)} to go` : " · tick each buyer as you reply"}</div><div class="pb"><i style="width:${(share * 100).toFixed(1)}%"></i></div><span class="note">Saved on this device</span></div>
       <div class="chips" role="group" aria-label="Type">${kinds.map(k => `<button type="button" class="chip ${S.kind === k ? "on" : ""}" data-kind="${k}">${k}<em>${count(k)}</em></button>`).join("")}</div>
       <div class="inbox">
         <section class="panel"><input class="search" id="q" type="search" placeholder="Search comments" value="${esc(S.q)}" aria-label="Search comments">
-          <div class="ilist" id="ilist">${rows || '<p class="note">Nothing here. All answered.</p>'}</div>
+          <div class="ilist" id="ilist">${rows || `<div class="empty">${SHOEBOX}<b>Nothing here</b><span>No buyers match this filter.</span></div>`}</div>
           <div class="row-btns"><button class="btn ghost sm" id="export" type="button">Export leads (CSV)</button><span class="note" style="align-self:center">${fmt(items.length)} shown</span></div>
         </section>
         <section class="panel reply-pane">${m ? `
@@ -256,7 +269,10 @@
           <div class="cmt"><small>${esc(m.brand)} · ${esc(m.where)} · ${esc(m.date)}</small>${esc(m.text)}</div>
           <div class="suggest"><small>SUGGESTED REPLY</small><span id="rtext">${esc(reply(m.need, m.brand))}</span></div>
           <label class="field">Your shop link<input id="link" value="${esc(S.link)}"></label>
-          <div class="row-btns"><button class="btn primary" id="copy" type="button">Copy reply</button>${m.url ? `<a class="btn ghost" href="${esc(m.url)}" target="_blank" rel="noopener">Open the video</a>` : ""}</div>
+          <div class="row-btns"><button class="btn primary" id="copy" type="button">${svg("copy")}Copy reply</button>
+            <button class="btn ${isDone(m) ? "done-btn" : "ghost"}" id="done" type="button">${svg("check")}${isDone(m) ? "Replied" : "Mark as replied"}</button></div>
+          <div class="row-btns">${m.url ? `<a class="btn ghost sm" href="${esc(m.url)}" target="_blank" rel="noopener">${svg("video")}Open the video</a>` : ""}
+            <a class="btn wa sm" id="wa" target="_blank" rel="noopener" href="#">${svg("whatsapp")}Send to my team</a></div>
           <p class="note" style="margin-top:12px">Fill in any ____ before posting. Sample wording written for this project.</p>` : '<p class="note">No message selected.</p>'}
         </section>
       </div></div>`;
@@ -269,6 +285,10 @@
     const q = $("#q"); if (q) q.oninput = () => { S.q = q.value; clearTimeout(q.t); q.t = setTimeout(() => { render(); const nq = $("#q"); nq.focus(); nq.setSelectionRange(nq.value.length, nq.value.length); }, 250); };
     const link = $("#link"); if (link) link.oninput = () => { S.link = link.value; store.set("link", S.link); const m = D.inbox.find(x => x.id === S.sel); if (m) $("#rtext").textContent = reply(m.need, m.brand); };
     const c = $("#copy"); if (c) c.onclick = () => copy($("#rtext").textContent);
+    const sel = D.inbox.find(x => x.id === S.sel);
+    const dn = $("#done"); if (dn && sel) dn.onclick = () => { toggleDone(sel); const y = $("#ilist").scrollTop; render(); $("#ilist").scrollTop = y; toast(isDone(sel) ? "Marked as replied." : "Moved back to waiting."); };
+    const w2 = $("#wa"), updWa = () => { if (w2 && sel) w2.href = wa(`New buyer for ${sel.brand} on YouTube (${sel.ask}):\n"${sel.text}"\n${sel.url || ""}\n\nReply to post:\n${$("#rtext").textContent}`); };
+    updWa(); if ($("#link")) $("#link").addEventListener("input", updWa);
     const ex = $("#export"); if (ex) ex.onclick = () => {
       const rows = [["date", "brand", "asking_about", "comment", "posted_on", "video"]].concat(inboxItems().map(m => [m.date, m.brand, m.ask, m.text, m.where, m.url]));
       const csv = rows.map(r => r.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -375,7 +395,7 @@
     const w = W(), h = health();
     const seen = new Set(), leads = inboxItems().filter(m => m.ask !== "Complaint" && m.text.length >= 8 && m.text.length < 120 && !seen.has(m.text.toLowerCase()) && seen.add(m.text.toLowerCase())).slice(0, 3);
     return `<div class="fade">${header("Weekly digest", "The email a brand's marketing team gets every Monday. Copy it or send it yourself.",
-      `<div class="row-btns no-print" style="margin:0"><button class="btn ghost" id="dcopy" type="button">Copy as text</button><a class="btn primary" id="dmail" href="#">Send by email</a></div>`)}
+      `<div class="row-btns no-print" style="margin:0"><button class="btn ghost" id="dcopy" type="button">${svg("copy")}Copy</button><a class="btn wa" id="dwa" href="#" target="_blank" rel="noopener">${svg("whatsapp")}WhatsApp</a><a class="btn primary" id="dmail" href="#">${svg("digest")}Email</a></div>`)}
       <div class="mail"><div class="bar"><i></i><i></i><i></i></div>
         <div class="hd"><div><b>From:</b> Joota Pulse &lt;digest@jootapulse&gt;</div><div><b>To:</b> marketing team, ${esc(w.label)}</div><div><b>Subject:</b> ${fmt(w.waiting)} buyers are waiting for your reply</div></div>
         <div class="bd"><h2>Good morning! Here's your week on YouTube.</h2>
@@ -587,6 +607,7 @@
     if (id === "digest") {
       const txt = digestText(W());
       $("#dcopy").onclick = () => copy(txt, "Digest copied.");
+      $("#dwa").href = wa(txt);
       $("#dmail").href = `mailto:?subject=${encodeURIComponent(`Joota Pulse: ${W().waiting} buyers are waiting for your reply`)}&body=${encodeURIComponent(txt)}`;
     }
     const page = PAGES.find(p => p.id === id);
